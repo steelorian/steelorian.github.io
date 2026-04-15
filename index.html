@@ -344,9 +344,9 @@ button{font-family:'Space Grotesk',sans-serif;}
           <svg class="spark" viewBox="0 0 100 30" fill="none" width="100%" height="28"><polyline points="0,26 20,22 40,18 60,20 80,14 100,8" stroke="#22c55e" stroke-width="1.5"/><polyline points="0,26 20,22 40,18 60,20 80,14 100,8 100,30 0,30" fill="#22c55e10"/></svg>
         </div>
         <div class="mkt-card" onclick="showPage('stocks')">
-          <div class="mkt-top"><div><div class="mkt-name">삼성전자</div><div class="mkt-sub">005930/KOSPI</div></div><span class="badge b-stock">KR</span></div>
-          <div class="mkt-price">₩72,400</div>
-          <div class="mkt-chg up">▲ +700 &nbsp;+0.97%</div>
+          <div class="mkt-top"><div><div class="mkt-name">Tesla</div><div class="mkt-sub">TSLA/NASDAQ</div></div><span class="badge b-robot">EV</span></div>
+          <div class="mkt-price" id="h-tsla-p">$--</div>
+          <div class="mkt-chg" id="h-tsla-c">--</div>
           <svg class="spark" viewBox="0 0 100 30" fill="none" width="100%" height="28"><polyline points="0,22 20,24 40,20 60,18 80,16 100,12" stroke="#22c55e" stroke-width="1.5"/><polyline points="0,22 20,24 40,20 60,18 80,16 100,12 100,30 0,30" fill="#22c55e10"/></svg>
         </div>
         <div class="mkt-card" onclick="showPage('ai')">
@@ -387,13 +387,6 @@ button{font-family:'Space Grotesk',sans-serif;}
           <button class="tab-btn" onclick="switchTab('global')">해외</button>
         </div>
         <div id="tab-crypto" class="price-list"></div>
-        <div id="tab-domestic" class="price-list" style="display:none;">
-          <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#22c55e18;color:var(--green);">삼성</div><div><div class="pl-name">삼성전자</div><div class="pl-sub">005930</div></div></div><div class="pl-right"><div class="pl-price">₩72,400</div><div class="pl-bar"><div class="pl-fill" style="width:68%;background:var(--green);"></div></div></div></div>
-          <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#3b82f618;color:var(--accent2);">SK</div><div><div class="pl-name">SK하이닉스</div><div class="pl-sub">000660</div></div></div><div class="pl-right"><div class="pl-price">₩183,500</div><div class="pl-bar"><div class="pl-fill" style="width:74%;background:var(--green);"></div></div></div></div>
-          <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#a78bfa18;color:var(--purple);">카카</div><div><div class="pl-name">카카오</div><div class="pl-sub">035720</div></div></div><div class="pl-right"><div class="pl-price">₩52,300</div><div class="pl-bar"><div class="pl-fill" style="width:41%;background:var(--red);"></div></div></div></div>
-          <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#f59e0b18;color:var(--amber);">현대</div><div><div class="pl-name">현대차</div><div class="pl-sub">005380</div></div></div><div class="pl-right"><div class="pl-price">₩241,000</div><div class="pl-bar"><div class="pl-fill" style="width:55%;background:var(--green);"></div></div></div></div>
-          <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#2dd4bf18;color:var(--teal);">네이</div><div><div class="pl-name">NAVER</div><div class="pl-sub">035420</div></div></div><div class="pl-right"><div class="pl-price">₩198,000</div><div class="pl-bar"><div class="pl-fill" style="width:48%;background:var(--red);"></div></div></div></div>
-        </div>
         <div id="tab-global" class="price-list" style="display:none;">
           <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#22c55e18;color:var(--green);">NVDA</div><div><div class="pl-name">NVIDIA</div><div class="pl-sub">NASDAQ</div></div></div><div class="pl-right"><div class="pl-price">$875.20</div><div class="pl-bar"><div class="pl-fill" style="width:82%;background:var(--green);"></div></div></div></div>
           <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#3b82f618;color:var(--accent2);">AAPL</div><div><div class="pl-name">Apple</div><div class="pl-sub">NASDAQ</div></div></div><div class="pl-right"><div class="pl-price">$189.30</div><div class="pl-bar"><div class="pl-fill" style="width:61%;background:var(--green);"></div></div></div></div>
@@ -443,52 +436,7 @@ button{font-family:'Space Grotesk',sans-serif;}
       <div class="cat-desc">인공지능, 머신러닝, 로보틱스 산업 최신 동향 및 투자 인사이트</div>
     </div>
     <div class="sec-hdr"><div class="sec-title">주요 AI 종목<div class="sec-line"></div></div></div>
-    <div class="mkt-grid" style="margin-bottom:24px;">
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">NVIDIA</div><div class="mkt-sub">NVDA</div></div><span class="badge b-ai">AI</span></div><div class="mkt-price">$875.20</div><div class="mkt-chg up">▲ +1.83%</div></div>
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">Microsoft</div><div class="mkt-sub">MSFT</div></div><span class="badge b-ai">AI</span></div><div class="mkt-price">$418.70</div><div class="mkt-chg up">▲ +0.94%</div></div>
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">Alphabet</div><div class="mkt-sub">GOOGL</div></div><span class="badge b-ai">AI</span></div><div class="mkt-price">$172.40</div><div class="mkt-chg up">▲ +1.21%</div></div>
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">Meta</div><div class="mkt-sub">META</div></div><span class="badge b-ai">AI</span></div><div class="mkt-price">$524.80</div><div class="mkt-chg dn">▼ −0.43%</div></div>
-    </div>
-    <div class="sec-hdr"><div class="sec-title">AI &amp; 로보틱스 뉴스<div class="sec-line"></div></div></div>
-    <div class="cat-grid" id="ai-news-grid"></div>
-  </div>
-</div>
-
-<!-- ══ SPACE PAGE ══ -->
-<div id="pv-space" class="pv">
-  <div class="cat-page">
-    <div class="cat-header">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span class="badge b-space" style="margin:0;">SPACE</span></div>
-      <div class="cat-title">우주산업</div>
-      <div class="cat-desc">SpaceX, NASA, 블루오리진 등 글로벌 우주산업 최신 소식</div>
-    </div>
-    <div class="sec-hdr"><div class="sec-title">우주산업 뉴스<div class="sec-line"></div></div></div>
-    <div class="cat-grid" id="space-news-grid"></div>
-  </div>
-</div>
-
-<!-- ══ STOCKS PAGE ══ -->
-<div id="pv-stocks" class="pv">
-  <div class="cat-page">
-    <div class="cat-header">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span class="badge b-stock" style="margin:0;">STOCKS</span></div>
-      <div class="cat-title">국내 · 해외 주식</div>
-      <div class="cat-desc">KOSPI, NASDAQ, NYSE 주요 종목 시세 및 투자 뉴스</div>
-    </div>
-    <div class="sec-hdr"><div class="sec-title">국내 주요 종목<div class="sec-line"></div></div></div>
-    <div class="mkt-grid" style="margin-bottom:24px;">
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">삼성전자</div><div class="mkt-sub">KOSPI</div></div><span class="badge b-stock">KR</span></div><div class="mkt-price">₩72,400</div><div class="mkt-chg up">▲ +0.97%</div></div>
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">SK하이닉스</div><div class="mkt-sub">KOSPI</div></div><span class="badge b-stock">KR</span></div><div class="mkt-price">₩183,500</div><div class="mkt-chg up">▲ +1.55%</div></div>
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">NAVER</div><div class="mkt-sub">KOSPI</div></div><span class="badge b-stock">KR</span></div><div class="mkt-price">₩198,000</div><div class="mkt-chg dn">▼ −0.31%</div></div>
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">카카오</div><div class="mkt-sub">KOSPI</div></div><span class="badge b-stock">KR</span></div><div class="mkt-price">₩52,300</div><div class="mkt-chg dn">▼ −0.76%</div></div>
-    </div>
-    <div class="sec-hdr"><div class="sec-title">해외 주요 종목<div class="sec-line"></div></div></div>
-    <div class="mkt-grid" style="margin-bottom:24px;">
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">NVIDIA</div><div class="mkt-sub">NASDAQ</div></div><span class="badge b-ai">AI</span></div><div class="mkt-price">$875.20</div><div class="mkt-chg up">▲ +1.83%</div></div>
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">Apple</div><div class="mkt-sub">NASDAQ</div></div><span class="badge b-stock">US</span></div><div class="mkt-price">$189.30</div><div class="mkt-chg up">▲ +0.52%</div></div>
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">Tesla</div><div class="mkt-sub">NASDAQ</div></div><span class="badge b-robot">EV</span></div><div class="mkt-price">$182.40</div><div class="mkt-chg dn">▼ −1.12%</div></div>
-      <div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">Amazon</div><div class="mkt-sub">NASDAQ</div></div><span class="badge b-stock">US</span></div><div class="mkt-price">$198.20</div><div class="mkt-chg up">▲ +0.74%</div></div>
-    </div>
+    <div class="mkt-grid" id="stocks-global-grid" style="margin-bottom:24px;"></div>
     <div class="sec-hdr"><div class="sec-title">주식 뉴스<div class="sec-line"></div></div></div>
     <div class="cat-grid" id="stocks-news-grid"></div>
   </div>
@@ -615,6 +563,7 @@ button{font-family:'Space Grotesk',sans-serif;}
 // NewsAPI 무료 키를 아래에 입력하세요 (newsapi.org 에서 무료 발급)
 const NEWS_API_KEY = 'ca08ce23ad0f48cc963a2d72a17a11cb';
 const USE_SAMPLE_NEWS = false;
+const AV_KEY = 'GR1UTQN8WHQ8CB84';
 
 // ══ CLOCK ══
 function updateClock(){
@@ -677,13 +626,13 @@ function showPage(p){
 
 // ══ TAB SWITCH ══
 function switchTab(t){
-  ['crypto','domestic','global'].forEach(k=>{
+  ['crypto','global'].forEach(k=>{
     const el = document.getElementById('tab-'+k);
     if(el) el.style.display = k===t ? 'flex' : 'none';
     el && (el.style.flexDirection = 'column');
   });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
-  const map = {crypto:0,domestic:1,global:2};
+  const map = {crypto:0,global:1};
   document.querySelectorAll('.tab-btn')[map[t]]?.classList.add('on');
 }
 
@@ -932,6 +881,103 @@ async function handleSubmit(e){
     alert('전송 오류. breav8122@gmail.com 으로 직접 문의해 주세요.');
   }
 }
+
+
+// ══ ALPHA VANTAGE 해외주식 실시간 ══
+const AV_STOCKS = [
+  {sym:'NVDA', name:'NVIDIA',    badge:'b-ai',    color:'#a78bfa'},
+  {sym:'TSLA', name:'Tesla',     badge:'b-robot', color:'#ef4444'},
+  {sym:'AAPL', name:'Apple',     badge:'b-stock', color:'#22c55e'},
+  {sym:'MSFT', name:'Microsoft', badge:'b-ai',    color:'#3b82f6'},
+  {sym:'AMZN', name:'Amazon',    badge:'b-stock', color:'#f59e0b'},
+  {sym:'GOOGL', name:'Alphabet', badge:'b-ai',    color:'#2dd4bf'},
+  {sym:'META', name:'Meta',      badge:'b-ai',    color:'#a78bfa'},
+];
+
+let avCache = {};
+
+async function fetchStock(sym){
+  try {
+    const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${sym}&apikey=${AV_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const q = data['Global Quote'];
+    if(!q || !q['05. price']) return null;
+    return {
+      price: parseFloat(q['05. price']),
+      change: parseFloat(q['09. change']),
+      changePct: parseFloat(q['10. change percent'].replace('%','')),
+    };
+  } catch(e){ return null; }
+}
+
+async function fetchAllStocks(){
+  for(const s of AV_STOCKS){
+    const d = await fetchStock(s.sym);
+    if(d) avCache[s.sym] = d;
+    await new Promise(r=>setTimeout(r,1200)); // rate limit 대응
+  }
+  renderStocksUI();
+}
+
+function renderStocksUI(){
+  // 사이드바 해외 탭
+  const tabEl = document.getElementById('tab-global');
+  if(tabEl){
+    tabEl.innerHTML = AV_STOCKS.slice(0,5).map(s=>{
+      const d = avCache[s.sym];
+      const price = d ? '$'+d.price.toFixed(2) : '$--';
+      const up = d ? d.changePct >= 0 : true;
+      const barW = d ? Math.min(95,Math.max(10,50+d.changePct*3)) : 50;
+      return `<div class="pl-row">
+        <div class="pl-left">
+          <div class="pl-icon" style="background:${s.color}18;color:${s.color};">${s.sym}</div>
+          <div><div class="pl-name">${s.name}</div><div class="pl-sub">NASDAQ</div></div>
+        </div>
+        <div class="pl-right">
+          <div class="pl-price">${price}</div>
+          <div class="pl-bar"><div class="pl-fill" style="width:${barW}%;background:${up?'var(--green)':'var(--red)'};"></div></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Stocks 페이지 해외 그리드
+  const grid = document.getElementById('stocks-global-grid');
+  if(grid){
+    grid.innerHTML = AV_STOCKS.map(s=>{
+      const d = avCache[s.sym];
+      const price = d ? '$'+d.price.toFixed(2) : '$--';
+      const chg = d ? (d.changePct>=0?'▲':'▼')+' '+Math.abs(d.changePct).toFixed(2)+'%' : '--';
+      const up = d ? d.changePct>=0 : true;
+      return `<div class="mkt-card">
+        <div class="mkt-top">
+          <div><div class="mkt-name">${s.name}</div><div class="mkt-sub">${s.sym} / NASDAQ</div></div>
+          <span class="badge ${s.badge}">${s.sym}</span>
+        </div>
+        <div class="mkt-price">${price}</div>
+        <div class="mkt-chg ${up?'up':'dn'}">${chg}</div>
+        <svg class="spark" viewBox="0 0 100 30" fill="none" width="100%" height="28">
+          <polyline points="0,${up?24:8} 25,${up?18:14} 50,${up?15:18} 75,${up?10:22} 100,${up?5:26}" stroke="${up?'#22c55e':'#ef4444'}" stroke-width="1.5"/>
+        </svg>
+      </div>`;
+    }).join('');
+  }
+
+  // 홈 메인 카드 NVDA 업데이트
+  const nvda = avCache['NVDA'];
+  if(nvda){
+    const el = document.querySelector('.mkt-card:nth-child(4) .mkt-price');
+    const elc = document.querySelector('.mkt-card:nth-child(4) .mkt-chg');
+    if(el) el.textContent = '$'+nvda.price.toFixed(2);
+    if(elc){ elc.textContent = (nvda.changePct>=0?'▲ +':'▼ ')+nvda.changePct.toFixed(2)+'%'; elc.className='mkt-chg '+(nvda.changePct>=0?'up':'dn'); }
+  }
+}
+
+// 페이지 로드시 실행
+fetchAllStocks();
+// 5분마다 갱신 (Alpha Vantage 무료 분당 5건 제한 대응)
+setInterval(fetchAllStocks, 5*60*1000);
 
 // ══ FEAR & GREED (샘플, Alternative.me API 연동 가능) ══
 async function fetchFearGreed(){
