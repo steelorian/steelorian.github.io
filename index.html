@@ -289,23 +289,21 @@ button{font-family:'Space Grotesk',sans-serif;}
     <div class="ti"><span class="ti-name">SOL/USD</span><span class="ti-price" id="tk-sol">$--</span><span class="ti-up" id="tk-sol-c">--</span></div>
     <div class="ti"><span class="ti-name">XRP/USD</span><span class="ti-price" id="tk-xrp">$--</span><span class="ti-up" id="tk-xrp-c">--</span></div>
     <div class="ti"><span class="ti-name">BNB/USD</span><span class="ti-price" id="tk-bnb">$--</span><span class="ti-up" id="tk-bnb-c">--</span></div>
-    <div class="ti"><span class="ti-name">KOSPI</span><span class="ti-price">2,612</span><span class="ti-up">▲0.43%</span></div>
-    <div class="ti"><span class="ti-name">KOSDAQ</span><span class="ti-price">842.1</span><span class="ti-dn">▼0.21%</span></div>
     <div class="ti"><span class="ti-name">S&amp;P500</span><span class="ti-price">5,248</span><span class="ti-up">▲0.62%</span></div>
     <div class="ti"><span class="ti-name">NASDAQ</span><span class="ti-price">18,341</span><span class="ti-up">▲0.89%</span></div>
     <div class="ti"><span class="ti-name">NVDA</span><span class="ti-price">$875.2</span><span class="ti-up">▲1.83%</span></div>
     <div class="ti"><span class="ti-name">TSLA</span><span class="ti-price">$182.4</span><span class="ti-dn">▼1.12%</span></div>
-    <div class="ti"><span class="ti-name">삼성전자</span><span class="ti-price">₩72,400</span><span class="ti-up">▲0.97%</span></div>
+    <div class="ti"><span class="ti-name">금(XAU)</span><span class="ti-price" id="tk-gold">$--</span><span class="ti-up" id="tk-gold-c">--</span></div>
+    <div class="ti"><span class="ti-name">은(XAG)</span><span class="ti-price" id="tk-silver">$--</span><span class="ti-up" id="tk-silver-c">--</span></div>
+    <div class="ti"><span class="ti-name">구리(HG)</span><span class="ti-price" id="tk-copper">$--</span><span class="ti-up" id="tk-copper-c">--</span></div>
     <!-- duplicate -->
     <div class="ti"><span class="ti-name">BTC/USD</span><span class="ti-price" id="tk-btc2">$--</span><span class="ti-up" id="tk-btc-c2">--</span></div>
     <div class="ti"><span class="ti-name">ETH/USD</span><span class="ti-price" id="tk-eth2">$--</span><span class="ti-up" id="tk-eth-c2">--</span></div>
     <div class="ti"><span class="ti-name">SOL/USD</span><span class="ti-price" id="tk-sol2">$--</span><span class="ti-up" id="tk-sol-c2">--</span></div>
     <div class="ti"><span class="ti-name">XRP/USD</span><span class="ti-price" id="tk-xrp2">$--</span><span class="ti-up" id="tk-xrp-c2">--</span></div>
-    <div class="ti"><span class="ti-name">KOSPI</span><span class="ti-price">2,612</span><span class="ti-up">▲0.43%</span></div>
     <div class="ti"><span class="ti-name">S&amp;P500</span><span class="ti-price">5,248</span><span class="ti-up">▲0.62%</span></div>
     <div class="ti"><span class="ti-name">NVDA</span><span class="ti-price">$875.2</span><span class="ti-up">▲1.83%</span></div>
-    <div class="ti"><span class="ti-name">삼성전자</span><span class="ti-price">₩72,400</span><span class="ti-up">▲0.97%</span></div>
-  </div>
+    </div>
 </div>
 
 <!-- COUNTER -->
@@ -383,18 +381,24 @@ button{font-family:'Space Grotesk',sans-serif;}
         <div style="font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--text2);font-weight:600;padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:12px;">실시간 시세</div>
         <div class="tab-row">
           <button class="tab-btn on" onclick="switchTab('crypto')">크립토</button>
-          <button class="tab-btn" onclick="switchTab('domestic')">국내</button>
-          <button class="tab-btn" onclick="switchTab('global')">해외</button>
+            <button class="tab-btn" onclick="switchTab('global')">해외</button>
+        <button class="tab-btn" onclick="switchTab('metals')">원자재</button>
         </div>
         <div id="tab-crypto" class="price-list"></div>
-        <div id="tab-global" class="price-list" style="display:none;">
+        <div id="tab-global" class="price-list" style="display:none;flex-direction:column;">
           <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#22c55e18;color:var(--green);">NVDA</div><div><div class="pl-name">NVIDIA</div><div class="pl-sub">NASDAQ</div></div></div><div class="pl-right"><div class="pl-price">$875.20</div><div class="pl-bar"><div class="pl-fill" style="width:82%;background:var(--green);"></div></div></div></div>
           <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#3b82f618;color:var(--accent2);">AAPL</div><div><div class="pl-name">Apple</div><div class="pl-sub">NASDAQ</div></div></div><div class="pl-right"><div class="pl-price">$189.30</div><div class="pl-bar"><div class="pl-fill" style="width:61%;background:var(--green);"></div></div></div></div>
           <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#a78bfa18;color:var(--purple);">MSFT</div><div><div class="pl-name">Microsoft</div><div class="pl-sub">NASDAQ</div></div></div><div class="pl-right"><div class="pl-price">$418.70</div><div class="pl-bar"><div class="pl-fill" style="width:70%;background:var(--green);"></div></div></div></div>
           <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#ef444418;color:var(--red);">TSLA</div><div><div class="pl-name">Tesla</div><div class="pl-sub">NASDAQ</div></div></div><div class="pl-right"><div class="pl-price">$182.40</div><div class="pl-bar"><div class="pl-fill" style="width:38%;background:var(--red);"></div></div></div></div>
           <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#f59e0b18;color:var(--amber);">AMZN</div><div><div class="pl-name">Amazon</div><div class="pl-sub">NASDAQ</div></div></div><div class="pl-right"><div class="pl-price">$198.20</div><div class="pl-bar"><div class="pl-fill" style="width:64%;background:var(--green);"></div></div></div></div>
+        <div id="tab-metals" class="price-list" style="display:none;flex-direction:column;">
+          <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#f59e0b18;color:var(--amber);">XAU</div><div><div class="pl-name">금 (Gold)</div><div class="pl-sub">XAU/USD</div></div></div><div class="pl-right"><div class="pl-price" id="s-gold">$--</div><div class="pl-bar"><div class="pl-fill" id="s-gold-bar" style="width:60%;background:var(--green);"></div></div></div></div>
+          <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#8b92a518;color:#b4b2a9;">XAG</div><div><div class="pl-name">은 (Silver)</div><div class="pl-sub">XAG/USD</div></div></div><div class="pl-right"><div class="pl-price" id="s-silver">$--</div><div class="pl-bar"><div class="pl-fill" id="s-silver-bar" style="width:50%;background:var(--green);"></div></div></div></div>
+          <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#d85a3018;color:#f0997b;">HG</div><div><div class="pl-name">구리 (Copper)</div><div class="pl-sub">HG/USD</div></div></div><div class="pl-right"><div class="pl-price" id="s-copper">$--</div><div class="pl-bar"><div class="pl-fill" id="s-copper-bar" style="width:45%;background:var(--green);"></div></div></div></div>
+          <div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:#22c55e18;color:var(--green);">WTI</div><div><div class="pl-name">WTI 원유</div><div class="pl-sub">OIL/USD</div></div></div><div class="pl-right"><div class="pl-price" id="s-oil">$--</div><div class="pl-bar"><div class="pl-fill" id="s-oil-bar" style="width:40%;background:var(--green);"></div></div></div></div>
         </div>
       </div>
+    </div>
 
       <div class="ad-box">
         <div class="ad-box-inner">
@@ -626,13 +630,13 @@ function showPage(p){
 
 // ══ TAB SWITCH ══
 function switchTab(t){
-  ['crypto','global'].forEach(k=>{
+  ['crypto','global','metals'].forEach(k=>{
     const el = document.getElementById('tab-'+k);
     if(el) el.style.display = k===t ? 'flex' : 'none';
     el && (el.style.flexDirection = 'column');
   });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
-  const map = {crypto:0,global:1};
+  const map = {crypto:0,global:1,metals:2};
   document.querySelectorAll('.tab-btn')[map[t]]?.classList.add('on');
 }
 
@@ -978,6 +982,63 @@ function renderStocksUI(){
 fetchAllStocks();
 // 5분마다 갱신 (Alpha Vantage 무료 분당 5건 제한 대응)
 setInterval(fetchAllStocks, 5*60*1000);
+
+
+// ══ 귀금속 / 원자재 실시간 (Alpha Vantage) ══
+const METALS = [
+  {sym:'XAU',  fn:'CURRENCY_EXCHANGE_RATE', from:'XAU', to:'USD', label:'금',   id:'gold',   color:'#f59e0b'},
+  {sym:'XAG',  fn:'CURRENCY_EXCHANGE_RATE', from:'XAG', to:'USD', label:'은',   id:'silver', color:'#b4b2a9'},
+  {sym:'CPER', fn:'GLOBAL_QUOTE',           label:'구리', id:'copper', color:'#f0997b'},
+  {sym:'USO',  fn:'GLOBAL_QUOTE',           label:'WTI', id:'oil',    color:'#22c55e'},
+];
+
+async function fetchMetal(m){
+  try {
+    let url, price, changePct;
+    if(m.fn === 'CURRENCY_EXCHANGE_RATE'){
+      url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${m.from}&to_currency=USD&apikey=${AV_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const rate = data['Realtime Currency Exchange Rate'];
+      if(!rate) return null;
+      price = parseFloat(rate['5. Exchange Rate']);
+      changePct = 0;
+    } else {
+      url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${m.sym}&apikey=${AV_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const q = data['Global Quote'];
+      if(!q || !q['05. price']) return null;
+      price = parseFloat(q['05. price']);
+      changePct = parseFloat(q['10. change percent'].replace('%',''));
+    }
+    return {price, changePct};
+  } catch(e){ return null; }
+}
+
+async function fetchAllMetals(){
+  for(const m of METALS){
+    const d = await fetchMetal(m);
+    if(!d){ await new Promise(r=>setTimeout(r,1500)); continue; }
+    const up = d.changePct >= 0;
+    const priceStr = '$' + d.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const chgStr = (up?'▲':'▼') + Math.abs(d.changePct).toFixed(2) + '%';
+    // 사이드바
+    const sEl = document.getElementById('s-'+m.id);
+    const bEl = document.getElementById('s-'+m.id+'-bar');
+    if(sEl) sEl.textContent = priceStr;
+    if(bEl){ bEl.style.width = Math.min(95,Math.max(10,50+d.changePct*3))+'%'; bEl.style.background = up?'var(--green)':'var(--red)'; }
+    // 티커
+    const tkEl = document.getElementById('tk-'+m.id);
+    const tkCEl = document.getElementById('tk-'+m.id+'-c');
+    if(tkEl) tkEl.textContent = priceStr;
+    if(tkCEl){ tkCEl.textContent = chgStr; tkCEl.className = up?'ti-up':'ti-dn'; }
+    await new Promise(r=>setTimeout(r,1500));
+  }
+}
+
+fetchAllMetals();
+setInterval(fetchAllMetals, 10*60*1000);
 
 // ══ FEAR & GREED (샘플, Alternative.me API 연동 가능) ══
 async function fetchFearGreed(){
