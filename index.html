@@ -234,6 +234,14 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .dc-badge{font-size:9px;background:#22c55e18;color:var(--green);border:1px solid #22c55e25;border-radius:3px;padding:2px 6px;margin-left:5px;}
 .success-msg{display:none;background:#22c55e12;border:1px solid #22c55e30;border-radius:8px;padding:16px;text-align:center;margin-top:10px;}
 
+
+/* 언어 선택기 */
+.lang-selector{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:3px;}
+.lang-btn{font-size:11px;color:var(--text3);cursor:pointer;padding:3px 8px;border-radius:4px;border:none;background:none;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:4px;transition:all 0.15s;}
+.lang-btn:hover{color:var(--text2);}
+.lang-btn.active{background:var(--bg4);color:var(--text);font-weight:500;}
+.lang-flag{font-size:13px;}
+
 /* FOOTER */
 .footer{border-top:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
 .footer-left{font-size:10px;color:var(--text3);}
@@ -253,15 +261,21 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <div><div class="logo-text">NEXUS SIGNAL</div><div class="logo-sub">Markets · Tech · Future</div></div>
       </div>
       <nav class="nav-links">
-        <div class="nl active" data-page="home" onclick="showPage('home')">Markets</div>
-        <div class="nl" data-page="crypto" onclick="showPage('crypto')">Crypto</div>
-        <div class="nl" data-page="ai" onclick="showPage('ai')">AI &amp; Robotics</div>
-        <div class="nl" data-page="space" onclick="showPage('space')">Space</div>
-        <div class="nl" data-page="stocks" onclick="showPage('stocks')">Stocks</div>
-        <div class="nl" data-page="ad" onclick="showPage('ad')">광고문의</div>
+        <div class="nl active" data-page="home" onclick="showPage('home')" data-i18n="nav_markets">Markets</div>
+        <div class="nl" data-page="crypto" onclick="showPage('crypto')" data-i18n="nav_crypto">Crypto</div>
+        <div class="nl" data-page="ai" onclick="showPage('ai')" data-i18n="nav_ai">AI &amp; Robotics</div>
+        <div class="nl" data-page="space" onclick="showPage('space')" data-i18n="nav_space">Space</div>
+        <div class="nl" data-page="stocks" onclick="showPage('stocks')" data-i18n="nav_stocks">Stocks</div>
+        <div class="nl" data-page="ad" onclick="showPage('ad')" data-i18n="nav_ad">광고문의</div>
       </nav>
     </div>
     <div class="nav-right">
+      <div class="lang-selector">
+        <button class="lang-btn active" onclick="setLang('ko')"><span class="lang-flag">🇰🇷</span>KO</button>
+        <button class="lang-btn" onclick="setLang('en')"><span class="lang-flag">🇺🇸</span>EN</button>
+        <button class="lang-btn" onclick="setLang('ja')"><span class="lang-flag">🇯🇵</span>JA</button>
+        <button class="lang-btn" onclick="setLang('zh')"><span class="lang-flag">🇨🇳</span>ZH</button>
+      </div>
       <div class="live-pill"><div class="live-dot"></div><span class="live-text">LIVE</span></div>
       <div class="clock-txt" id="clock">KST 00:00:00</div>
     </div>
@@ -301,9 +315,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div class="c-left">
     <div class="c-pill"><div class="c-pdot"></div><span class="c-ptxt">LIVE</span></div>
     <div class="cdiv"></div>
-    <div class="c-item"><div class="c-dot" style="background:var(--accent);"></div><span class="c-lbl">오늘 방문자</span><span class="c-val" id="cv-today">-</span><span class="c-lbl">명</span></div>
+    <div class="c-item"><div class="c-dot" style="background:var(--accent);"></div><span class="c-lbl" data-i18n="today_visitors">오늘 방문자</span><span class="c-val" id="cv-today">-</span><span class="c-lbl">명</span></div>
     <div class="cdiv"></div>
-    <div class="c-item"><div class="c-dot" style="background:var(--amber);"></div><span class="c-lbl">누적 방문자</span><span class="c-val" id="cv-total">-</span><span class="c-lbl">명</span></div>
+    <div class="c-item"><div class="c-dot" style="background:var(--amber);"></div><span class="c-lbl" data-i18n="total_visitors">누적 방문자</span><span class="c-val" id="cv-total">-</span><span class="c-lbl">명</span></div>
   </div>
   <div style="font-size:10px;color:var(--text3);" id="ct-date"></div>
 </div>
@@ -313,7 +327,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div class="main-layout">
     <div class="main-col">
       <div class="sec-hdr">
-        <div class="sec-title">시장 현황<div class="sec-line"></div></div>
+        <div class="sec-title" data-i18n="market_status">시장 현황<div class="sec-line"></div></div>
         <span class="sec-more" onclick="showPage('crypto')">전체보기 →</span>
       </div>
       <div class="mkt-grid">
@@ -349,11 +363,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div style="font-size:15px;font-weight:600;">미래산업 전문 벤처펀드 — 2026 시즌2 모집</div>
           <div style="font-size:11px;color:var(--text2);margin-top:3px;">AI · 로보틱스 · 우주산업 유망 스타트업 공동 투자</div>
         </div>
-        <button class="ad-strip-btn" onclick="showPage('ad')">광고 문의 →</button>
+        <button class="ad-strip-btn" onclick="showPage('ad')" data-i18n="ad_btn">광고 문의 →</button>
       </div>
 
       <div class="sec-hdr">
-        <div class="sec-title">주요 뉴스<div class="sec-line"></div></div>
+        <div class="sec-title" data-i18n="main_news">주요 뉴스<div class="sec-line"></div></div>
         <span class="sec-more">전체보기 →</span>
       </div>
       <div id="home-news-hero"></div>
@@ -362,7 +376,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <div class="side-col">
       <div class="fear-box">
-        <div style="font-size:9px;letter-spacing:2px;color:var(--text2);text-transform:uppercase;margin-bottom:10px;font-weight:600;">공포·탐욕 지수 (Crypto)</div>
+        <div style="font-size:9px;letter-spacing:2px;color:var(--text2);text-transform:uppercase;margin-bottom:10px;font-weight:600;" data-i18n="fear_greed">공포·탐욕 지수 (Crypto)</div>
         <div class="fear-bar"><div class="fear-needle" id="fear-needle" style="left:50%;"></div></div>
         <div class="fear-vals"><span>극도공포</span><span>중립</span><span>극도탐욕</span></div>
         <div class="fear-num" id="fear-num">--</div>
@@ -370,11 +384,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
 
       <div class="side-section">
-        <div class="side-hdr">실시간 시세</div>
+        <div class="side-hdr" data-i18n="live_price">실시간 시세</div>
         <div class="tab-row">
-          <button class="tab-btn on" onclick="switchTab('crypto')">크립토</button>
-          <button class="tab-btn" onclick="switchTab('global')">해외주식</button>
-          <button class="tab-btn" onclick="switchTab('metals')">원자재</button>
+          <button class="tab-btn on" onclick="switchTab('crypto')" data-i18n="tab_crypto">크립토</button>
+          <button class="tab-btn" onclick="switchTab('global')" data-i18n="tab_global">해외주식</button>
+          <button class="tab-btn" onclick="switchTab('metals')" data-i18n="tab_metals">원자재</button>
         </div>
         <div id="tab-crypto" class="price-list"></div>
         <div id="tab-global" class="price-list" style="display:none;flex-direction:column;"></div>
@@ -395,7 +409,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
 
       <div class="side-section">
-        <div class="side-hdr">실시간 인기 뉴스</div>
+        <div class="side-hdr" data-i18n="trending_news">실시간 인기 뉴스</div>
         <div class="trend-list" id="side-trend"></div>
       </div>
     </div>
@@ -410,7 +424,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div class="cat-title">크립토 시장</div>
       <div class="cat-desc">Bitcoin, Ethereum, Solana 등 주요 암호화폐 실시간 시세 및 뉴스</div>
     </div>
-    <div class="sec-hdr"><div class="sec-title">실시간 시세<div class="sec-line"></div></div></div>
+    <div class="sec-hdr"><div class="sec-title" data-i18n="live_price">실시간 시세<div class="sec-line"></div></div></div>
     <div class="mkt-grid" id="crypto-price-grid" style="margin-bottom:22px;"></div>
     <div class="sec-hdr"><div class="sec-title">크립토 뉴스<div class="sec-line"></div></div></div>
     <div class="cat-grid" id="crypto-news-grid"></div>
@@ -592,6 +606,123 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // NEXUS SIGNAL — 단일 통합 스크립트
 // ════════════════════════════════════════
 
+// ════════════════════════════════════════
+// 다국어 지원
+// ════════════════════════════════════════
+const I18N = {
+  ko: {
+    nav_markets:'Markets', nav_crypto:'Crypto', nav_ai:'AI & Robotics',
+    nav_space:'Space', nav_stocks:'Stocks', nav_ad:'광고문의',
+    today_visitors:'오늘 방문자', total_visitors:'누적 방문자',
+    market_status:'시장 현황', main_news:'주요 뉴스',
+    live_price:'실시간 시세', trending_news:'실시간 인기 뉴스',
+    fear_greed:'공포·탐욕 지수 (Crypto)',
+    tab_crypto:'크립토', tab_global:'해외주식', tab_metals:'원자재',
+    ad_btn:'광고 문의 →', read_more:'전문 읽기 →',
+    cat_crypto_title:'크립토 시장', cat_crypto_desc:'Bitcoin, Ethereum, Solana 등 주요 암호화폐 실시간 시세 및 뉴스',
+    cat_ai_title:'AI & 로보틱스', cat_ai_desc:'인공지능, 머신러닝, 로보틱스 산업 최신 동향',
+    cat_space_title:'우주산업', cat_space_desc:'SpaceX, NASA, 블루오리진 등 글로벌 우주산업 최신 소식',
+    cat_stocks_title:'해외 주식', cat_stocks_desc:'NASDAQ, NYSE 주요 종목 실시간 시세 및 투자 뉴스',
+    adv_title:'한국 최고의 <span>미래산업 미디어</span>에<br>광고하세요',
+    footer:'© 2026 Nexus Signal. 투자에 관한 최종 결정은 투자자 본인의 판단입니다.',
+  },
+  en: {
+    nav_markets:'Markets', nav_crypto:'Crypto', nav_ai:'AI & Robotics',
+    nav_space:'Space', nav_stocks:'Stocks', nav_ad:'Advertise',
+    today_visitors:"Today's Visitors", total_visitors:'Total Visitors',
+    market_status:'Market Overview', main_news:'Top News',
+    live_price:'Live Prices', trending_news:'Trending News',
+    fear_greed:'Fear & Greed Index (Crypto)',
+    tab_crypto:'Crypto', tab_global:'Stocks', tab_metals:'Commodities',
+    ad_btn:'Advertise →', read_more:'Read More →',
+    cat_crypto_title:'Crypto Markets', cat_crypto_desc:'Real-time prices and news for Bitcoin, Ethereum, Solana and more',
+    cat_ai_title:'AI & Robotics', cat_ai_desc:'Latest trends in AI, machine learning and robotics industry',
+    cat_space_title:'Space Industry', cat_space_desc:'Latest news from SpaceX, NASA, Blue Origin and global space industry',
+    cat_stocks_title:'Global Stocks', cat_stocks_desc:'Real-time prices and investment news for NASDAQ, NYSE major stocks',
+    adv_title:"Advertise on Korea's <span>Leading Future Tech Media</span>",
+    footer:'© 2026 Nexus Signal. Investment decisions are solely the responsibility of the investor.',
+  },
+  ja: {
+    nav_markets:'マーケット', nav_crypto:'クリプト', nav_ai:'AI・ロボティクス',
+    nav_space:'宇宙産業', nav_stocks:'株式', nav_ad:'広告掲載',
+    today_visitors:'本日の訪問者', total_visitors:'累計訪問者',
+    market_status:'市場概況', main_news:'主要ニュース',
+    live_price:'リアルタイム相場', trending_news:'話題のニュース',
+    fear_greed:'恐怖・強欲指数 (Crypto)',
+    tab_crypto:'クリプト', tab_global:'海外株式', tab_metals:'コモディティ',
+    ad_btn:'広告掲載 →', read_more:'全文を読む →',
+    cat_crypto_title:'暗号資産市場', cat_crypto_desc:'ビットコイン、イーサリアムなど主要暗号資産のリアルタイム価格とニュース',
+    cat_ai_title:'AI・ロボティクス', cat_ai_desc:'AI、機械学習、ロボティクス産業の最新トレンド',
+    cat_space_title:'宇宙産業', cat_space_desc:'SpaceX、NASA、ブルーオリジンなどグローバル宇宙産業の最新ニュース',
+    cat_stocks_title:'海外株式', cat_stocks_desc:'NASDAQ、NYSE主要銘柄のリアルタイム価格と投資ニュース',
+    adv_title:'韓国最高の<span>未来産業メディア</span>に<br>広告を掲載しませんか',
+    footer:'© 2026 Nexus Signal. 投資の最終決定は投資家ご自身の判断によります。',
+  },
+  zh: {
+    nav_markets:'市场', nav_crypto:'加密货币', nav_ai:'AI·机器人',
+    nav_space:'航天产业', nav_stocks:'股票', nav_ad:'广告合作',
+    today_visitors:'今日访客', total_visitors:'累计访客',
+    market_status:'市场概览', main_news:'头条新闻',
+    live_price:'实时行情', trending_news:'热门新闻',
+    fear_greed:'恐惧与贪婪指数 (Crypto)',
+    tab_crypto:'加密货币', tab_global:'海外股票', tab_metals:'大宗商品',
+    ad_btn:'广告合作 →', read_more:'阅读全文 →',
+    cat_crypto_title:'加密货币市场', cat_crypto_desc:'比特币、以太坊等主要加密货币实时行情及新闻',
+    cat_ai_title:'AI·机器人', cat_ai_desc:'人工智能、机器学习、机器人产业最新动态',
+    cat_space_title:'航天产业', cat_space_desc:'SpaceX、NASA等全球航天产业最新资讯',
+    cat_stocks_title:'海外股票', cat_stocks_desc:'纳斯达克、纽交所主要股票实时行情及投资新闻',
+    adv_title:'在韩国领先的<span>未来产业媒体</span>上<br>投放广告',
+    footer:'© 2026 Nexus Signal. 投资的最终决定由投资者自行负责。',
+  },
+};
+
+let currentLang = 'ko';
+
+function setLang(lang){
+  currentLang = lang;
+  const dict = I18N[lang];
+  if(!dict) return;
+
+  // 언어 버튼 활성화
+  document.querySelectorAll('.lang-btn').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('onclick').includes("'"+lang+"'"));
+  });
+
+  // data-i18n 속성으로 텍스트 교체
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if(dict[key] !== undefined) el.innerHTML = dict[key];
+  });
+
+  // 카테고리 페이지 제목/설명 교체
+  const catTitles = {
+    'pv-crypto': {title:'cat_crypto_title', desc:'cat_crypto_desc'},
+    'pv-ai':     {title:'cat_ai_title',     desc:'cat_ai_desc'},
+    'pv-space':  {title:'cat_space_title',  desc:'cat_space_desc'},
+    'pv-stocks': {title:'cat_stocks_title', desc:'cat_stocks_desc'},
+  };
+  Object.entries(catTitles).forEach(([pageId, keys])=>{
+    const page = document.getElementById(pageId);
+    if(!page) return;
+    const titleEl = page.querySelector('.cat-title');
+    const descEl  = page.querySelector('.cat-desc');
+    if(titleEl && dict[keys.title]) titleEl.innerHTML = dict[keys.title];
+    if(descEl  && dict[keys.desc])  descEl.innerHTML  = dict[keys.desc];
+  });
+
+  // 광고 페이지 제목
+  const advTitleEl = document.querySelector('.adv-title');
+  if(advTitleEl && dict.adv_title) advTitleEl.innerHTML = dict.adv_title;
+
+  // 푸터
+  const footerEl = document.querySelector('.footer-left');
+  if(footerEl && dict.footer) footerEl.textContent = dict.footer;
+
+  // html lang 속성
+  document.documentElement.lang = lang;
+}
+
+
 // ── CONFIG ──
 const NEWSAPI_KEY = 'ca08ce23ad0f48cc963a2d72a17a11cb';
 const FORMSPREE_ID = 'xjgjkjvq';
@@ -647,35 +778,41 @@ function switchTab(t){
   });
 }
 
-// ── 방문자 카운터 (CountAPI - 전세계 공유) ──
-// namespace: nexussignal-steelorian (고유 식별자)
-const COUNT_NS = 'nexussignal-steelorian';
-const TODAY = new Date().toISOString().slice(0,10).replace(/-/g,'');
+// ── 방문자 카운터 (전세계 공유 - CORS 허용) ──
+const TODAY_KEY = new Date().toISOString().slice(0,10);
 
 async function updateVisitor(){
   try {
-    // 누적 방문자 카운트 (전세계 공유)
-    const totalRes = await fetch(`https://api.countapi.xyz/hit/${COUNT_NS}/total`);
+    // api.counterapi.dev - 무료, CORS 완전 허용
+    const ns = 'nexussignal';
+    const totalRes = await fetch(`https://api.counterapi.dev/v1/${ns}/total/up`);
     const totalData = await totalRes.json();
-    const total = totalData.value || 0;
+    const total = totalData.count || 0;
 
-    // 오늘 방문자 카운트 (날짜별 키)
-    const todayRes = await fetch(`https://api.countapi.xyz/hit/${COUNT_NS}/day-${TODAY}`);
+    const todayRes = await fetch(`https://api.counterapi.dev/v1/${ns}/day${TODAY_KEY.replace(/-/g,'')}/up`);
     const todayData = await todayRes.json();
-    const today = todayData.value || 0;
+    const today = todayData.count || 0;
 
     document.getElementById('cv-total').textContent = total.toLocaleString();
     document.getElementById('cv-today').textContent = today.toLocaleString();
     const adEl = document.getElementById('ad-total');
     if(adEl) adEl.textContent = total.toLocaleString();
   } catch(e){
-    // CountAPI 실패시 백업 표시
-    document.getElementById('cv-total').textContent = '집계 중';
-    document.getElementById('cv-today').textContent = '집계 중';
+    // 백업: pageview.rest API
+    try {
+      const r = await fetch('https://pageview.rest/v1/view?host=steelorian.github.io', {method:'POST'});
+      const d = await r.json();
+      if(d.total !== undefined){
+        document.getElementById('cv-total').textContent = parseInt(d.total).toLocaleString();
+        document.getElementById('cv-today').textContent = parseInt(d.today||0).toLocaleString();
+      }
+    } catch(e2){
+      document.getElementById('cv-total').textContent = '-';
+      document.getElementById('cv-today').textContent = '-';
+    }
   }
 }
 updateVisitor();
-// 5분마다 갱신 (새로고침 없이도 최신값 반영)
 setInterval(updateVisitor, 5*60*1000);
 
 // ── 뉴스 열기 ──
@@ -934,14 +1071,21 @@ const STOCKS = [
 let stockCache={};
 
 async function fetchStock(sym){
-  for(const base of ['https://query1.finance.yahoo.com','https://query2.finance.yahoo.com']){
+  const YAHOO_URLS = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
+    `https://corsproxy.io/?${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=1d&range=1d')}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=1d&range=1d')}`,
+  ];
+  for(const url of YAHOO_URLS){
     try {
-      const r=await fetch(`${base}/v8/finance/chart/${sym}?interval=1d&range=1d`);
-      const d=await r.json();
+      const r=await fetch(url,{headers:{Accept:'application/json'}});
+      let d=await r.json();
+      if(d.contents) d=JSON.parse(d.contents);
       const m=d.chart.result[0].meta;
       const price=m.regularMarketPrice;
-      const prev=m.chartPreviousClose||m.regularMarketPreviousClose;
-      const chgPct=((price-prev)/prev)*100;
+      const prev=m.chartPreviousClose||m.regularMarketPreviousClose||price;
+      const chgPct=prev?((price-prev)/prev)*100:0;
       return {price,chgPct};
     } catch(e){}
   }
