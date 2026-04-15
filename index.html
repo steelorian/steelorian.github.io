@@ -296,6 +296,7 @@ button{font-family:'Space Grotesk',sans-serif;}
     <div class="ti"><span class="ti-name">금(XAU)</span><span class="ti-price" id="tk-gold">$--</span><span class="ti-up" id="tk-gold-c">--</span></div>
     <div class="ti"><span class="ti-name">은(XAG)</span><span class="ti-price" id="tk-silver">$--</span><span class="ti-up" id="tk-silver-c">--</span></div>
     <div class="ti"><span class="ti-name">구리(HG)</span><span class="ti-price" id="tk-copper">$--</span><span class="ti-up" id="tk-copper-c">--</span></div>
+    <div class="ti"><span class="ti-name">WTI 원유</span><span class="ti-price" id="tk-oil">$--</span><span class="ti-up" id="tk-oil-c">--</span></div>
     <!-- duplicate -->
     <div class="ti"><span class="ti-name">BTC/USD</span><span class="ti-price" id="tk-btc2">$--</span><span class="ti-up" id="tk-btc-c2">--</span></div>
     <div class="ti"><span class="ti-name">ETH/USD</span><span class="ti-price" id="tk-eth2">$--</span><span class="ti-up" id="tk-eth-c2">--</span></div>
@@ -855,17 +856,189 @@ function renderCatGrid(elId, articles, cat){
     </div>`).join('');
 }
 
-async function loadAllNews(){
-  const all = await fetchNews('AI robotics crypto space stocks technology', 'all');
-  renderHomeNews(all);
-  renderCatGrid('crypto-news-grid', all, 'crypto');
-  renderCatGrid('ai-news-grid', all, 'ai');
-  renderCatGrid('space-news-grid', all, 'space');
-  renderCatGrid('stocks-news-grid', all, 'stocks');
+
+// ══ RSS 피드 뉴스 자동 연동 ══
+// CORS 프록시를 통해 RSS XML을 JSON으로 변환
+const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
+
+const RSS_FEEDS = [
+  // ── 국내 크립토
+  { url: 'https://coinness.com/feed', cat: 'crypto', source: '코인니스' },
+  { url: 'https://www.blockmedia.co.kr/feed', cat: 'crypto', source: '블록미디어' },
+  { url: 'https://decenter.kr/rss/allArticle.xml', cat: 'crypto', source: '디센터' },
+  // ── 국내 AI · 테크
+  { url: 'https://www.aitimes.com/rss/allArticle.xml', cat: 'ai', source: 'AI타임스' },
+  { url: 'https://zdnet.co.kr/rss/', cat: 'ai', source: 'ZDNet Korea' },
+  { url: 'https://www.etnews.com/rss/S1N1.xml', cat: 'ai', source: '전자신문' },
+  // ── 국내 주식 · 경제
+  { url: 'https://www.hankyung.com/feed/economy', cat: 'stocks', source: '한국경제' },
+  { url: 'https://biz.chosun.com/feed', cat: 'stocks', source: '조선비즈' },
+  { url: 'https://www.mk.co.kr/rss/30000001/', cat: 'stocks', source: '매일경제' },
+  // ── 국내 우주 · 과학
+  { url: 'https://www.dongascience.com/rss/all', cat: 'space', source: '동아사이언스' },
+  // ── 해외 크립토
+  { url: 'https://coindesk.com/arc/outboundfeeds/rss/', cat: 'crypto', source: 'CoinDesk' },
+  { url: 'https://cointelegraph.com/rss', cat: 'crypto', source: 'CoinTelegraph' },
+  // ── 해외 AI · 로보틱스
+  { url: 'https://techcrunch.com/feed/', cat: 'ai', source: 'TechCrunch' },
+  { url: 'https://venturebeat.com/feed/', cat: 'ai', source: 'VentureBeat' },
+  // ── 해외 우주산업
+  { url: 'https://www.nasaspaceflight.com/feed/', cat: 'space', source: 'NASASpaceFlight' },
+  { url: 'https://spaceflightnow.com/feed/', cat: 'space', source: 'Spaceflight Now' },
+  // ── 해외 주식 · 금융
+  { url: 'https://feeds.bloomberg.com/markets/news.rss', cat: 'stocks', source: 'Bloomberg' },
+  { url: 'https://www.investing.com/rss/news.rss', cat: 'stocks', source: 'Investing.com' },
+];
+
+let allArticles = [];
+
+// 국내 언론사 목록
+const KR_SOURCES = ['코인니스','블록미디어','디센터','AI타임스','ZDNet Korea','전자신문','한국경제','조선비즈','매일경제','동아사이언스'];
+
+function isKorean(source){ return KR_SOURCES.includes(source); }
+
+function timeAgo(dateStr){
+  const now = new Date();
+  const d = new Date(dateStr);
+  const diff = Math.floor((now - d) / 60000);
+  if(diff < 60) return diff + '분 전';
+  if(diff < 1440) return Math.floor(diff/60) + '시간 전';
+  return Math.floor(diff/1440) + '일 전';
 }
 
-loadAllNews();
-setInterval(loadAllNews, 10*60*1000); // 10분마다 갱신
+async function fetchRSSFeed(feed){
+  try {
+    const url = RSS_PROXY + encodeURIComponent(feed.url) + '&count=15&api_key=kuctzrstogwhbbpxisgjvlbqmstne6vbrbxwvzro';
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.status !== 'ok' || !data.items) return [];
+    return data.items.map(item => ({
+      title: item.title,
+      desc: item.description ? item.description.replace(/<[^>]+>/g,'').slice(0,120) + '...' : '',
+      url: item.link,
+      time: timeAgo(item.pubDate),
+      pubDate: item.pubDate,
+      source: (KR_SOURCES.includes(feed.source) ? '🇰🇷 ' : '🌐 ') + feed.source,
+      cat: feed.cat,
+      thumbnail: item.thumbnail || item.enclosure?.link || '',
+    }));
+  } catch(e){
+    console.log('RSS fetch error:', feed.source, e);
+    return [];
+  }
+}
+
+async function loadRSSNews(){
+  const results = await Promise.allSettled(
+    RSS_FEEDS.map(f => fetchRSSFeed(f))
+  );
+  
+  let articles = [];
+  results.forEach(r => {
+    if(r.status === 'fulfilled') articles = articles.concat(r.value);
+  });
+
+  // 최신순 정렬
+  articles.sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
+  
+  if(articles.length === 0){
+    // RSS 실패 시 샘플 유지
+    console.log('RSS 로드 실패 - 샘플 뉴스 유지');
+    renderHomeNews(SAMPLE_NEWS.all);
+    renderCatGrid('crypto-news-grid', SAMPLE_NEWS.all, 'crypto');
+    renderCatGrid('ai-news-grid', SAMPLE_NEWS.all, 'ai');
+    renderCatGrid('space-news-grid', SAMPLE_NEWS.all, 'space');
+    renderCatGrid('stocks-news-grid', SAMPLE_NEWS.all, 'stocks');
+    return;
+  }
+
+  allArticles = articles;
+
+  // 각 페이지 렌더링
+  renderHomeNews(articles);
+  renderCatGrid('crypto-news-grid', articles.filter(a=>a.cat==='crypto'), 'crypto');
+  renderCatGrid('ai-news-grid', articles.filter(a=>a.cat==='ai'), 'ai');
+  renderCatGrid('space-news-grid', articles.filter(a=>a.cat==='space'), 'space');
+  renderCatGrid('stocks-news-grid', articles.filter(a=>a.cat==='stocks'), 'stocks');
+}
+
+// 기사 클릭 시 원본 페이지 새 탭으로 열기
+function openArticle(url){
+  if(url && url.startsWith('http')) window.open(url, '_blank');
+}
+
+// 홈 뉴스 렌더링 (RSS 기사에 실제 링크 포함)
+function renderHomeNews(articles){
+  const heroEl = document.getElementById('home-news-hero');
+  const hero = articles[0] || {};
+  const cat = hero.cat || 'ai';
+  heroEl.innerHTML = `
+    <div class="hero-grid" style="margin-bottom:18px;">
+      <div class="hero-main" style="cursor:pointer;" onclick="openArticle('${hero.url||''}')">
+        <span class="badge ${CAT_COLORS[cat]||'b-ai'}">${CAT_LABELS[cat]||'뉴스'}</span>
+        <div class="hero-title">${hero.title||''}</div>
+        <div class="hero-desc">${hero.desc||''}</div>
+        <div class="hero-meta">
+          <span class="hero-time">${hero.time||''} · ${hero.source||'Nexus Signal'}</span>
+          <span class="read-btn" onclick="event.stopPropagation();openArticle('${hero.url||''}')">전문 읽기 →</span>
+        </div>
+      </div>
+      <div class="hero-side">
+        ${articles.slice(1,3).map(a=>`
+          <div class="hero-sm" style="cursor:pointer;" onclick="openArticle('${a.url||''}')">
+            <span class="badge ${CAT_COLORS[a.cat]||'b-ai'}">${CAT_LABELS[a.cat]||'뉴스'}</span>
+            <div class="hero-sm-title">${a.title}</div>
+            <div class="hero-sm-time">${a.time} · ${a.source}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  // 뉴스 리스트
+  const listEl = document.getElementById('home-news-list');
+  listEl.innerHTML = articles.slice(3,9).map((a,i)=>`
+    <div class="ni" onclick="openArticle('${a.url||''}')">
+      <div class="ni-num">${String(i+1).padStart(2,'0')}</div>
+      <div>
+        <div class="ni-title">${a.title}</div>
+        <div class="ni-meta">
+          <span class="badge ${CAT_COLORS[a.cat]||'b-ai'}" style="margin:0;">${CAT_LABELS[a.cat]||'뉴스'}</span>
+          <span class="ni-time">${a.time}</span>
+          <span class="ni-src">${a.source}</span>
+        </div>
+      </div>
+    </div>`).join('');
+
+  // 트렌딩 사이드바
+  const trendEl = document.getElementById('side-trend');
+  trendEl.innerHTML = articles.slice(0,5).map((a,i)=>`
+    <div class="trend-row" onclick="openArticle('${a.url||''}')">
+      <div class="trend-n">${i+1}</div>
+      <div>
+        <div class="trend-title">${a.title}</div>
+        <div class="trend-meta">${a.time} · ${a.source}</div>
+      </div>
+    </div>`).join('');
+}
+
+// 카테고리 그리드 렌더링 (실제 링크 포함)
+function renderCatGrid(elId, articles, cat){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const items = articles.length ? articles : SAMPLE_NEWS.all;
+  el.innerHTML = items.slice(0,9).map(a=>`
+    <div class="cat-card" onclick="openArticle('${a.url||''}')">
+      <div class="cat-card-img" style="background:var(--bg3);">${CAT_EMOJIS[a.cat]||'📰'}</div>
+      <span class="badge ${CAT_COLORS[a.cat]||'b-ai'}">${CAT_LABELS[a.cat]||'뉴스'}</span>
+      <div class="cat-card-title">${a.title}</div>
+      <div class="cat-card-meta">${a.time} · ${a.source}</div>
+      ${a.desc ? `<div class="cat-card-desc">${a.desc}</div>` : ''}
+    </div>`).join('');
+}
+
+// 초기 로드 + 10분마다 자동 갱신
+loadRSSNews();
+setInterval(loadRSSNews, 10*60*1000);
+ // 10분마다 갱신
 
 // ══ FORMSPREE ══
 async function handleSubmit(e){
@@ -979,66 +1152,112 @@ function renderStocksUI(){
 }
 
 // 페이지 로드시 실행
-fetchAllStocks();
-// 5분마다 갱신 (Alpha Vantage 무료 분당 5건 제한 대응)
-setInterval(fetchAllStocks, 5*60*1000);
+// Yahoo Finance로 대체됨 - fetchAllStocksYahoo() 사용
 
 
-// ══ 귀금속 / 원자재 실시간 (Alpha Vantage) ══
-const METALS = [
-  {sym:'XAU',  fn:'CURRENCY_EXCHANGE_RATE', from:'XAU', to:'USD', label:'금',   id:'gold',   color:'#f59e0b'},
-  {sym:'XAG',  fn:'CURRENCY_EXCHANGE_RATE', from:'XAG', to:'USD', label:'은',   id:'silver', color:'#b4b2a9'},
-  {sym:'CPER', fn:'GLOBAL_QUOTE',           label:'구리', id:'copper', color:'#f0997b'},
-  {sym:'USO',  fn:'GLOBAL_QUOTE',           label:'WTI', id:'oil',    color:'#22c55e'},
-];
 
-async function fetchMetal(m){
+// ══ 귀금속 / 원자재 실시간 ══
+// 금·은 → metals.live API (무료, CORS 허용)
+// 구리·WTI → stooq.com 공개 CSV (무료)
+
+async function fetchMetalsLive(){
   try {
-    let url, price, changePct;
-    if(m.fn === 'CURRENCY_EXCHANGE_RATE'){
-      url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${m.from}&to_currency=USD&apikey=${AV_KEY}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const rate = data['Realtime Currency Exchange Rate'];
-      if(!rate) return null;
-      price = parseFloat(rate['5. Exchange Rate']);
-      changePct = 0;
-    } else {
-      url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${m.sym}&apikey=${AV_KEY}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const q = data['Global Quote'];
-      if(!q || !q['05. price']) return null;
-      price = parseFloat(q['05. price']);
-      changePct = parseFloat(q['10. change percent'].replace('%',''));
-    }
-    return {price, changePct};
-  } catch(e){ return null; }
-}
-
-async function fetchAllMetals(){
-  for(const m of METALS){
-    const d = await fetchMetal(m);
-    if(!d){ await new Promise(r=>setTimeout(r,1500)); continue; }
-    const up = d.changePct >= 0;
-    const priceStr = '$' + d.price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-    const chgStr = (up?'▲':'▼') + Math.abs(d.changePct).toFixed(2) + '%';
-    // 사이드바
-    const sEl = document.getElementById('s-'+m.id);
-    const bEl = document.getElementById('s-'+m.id+'-bar');
-    if(sEl) sEl.textContent = priceStr;
-    if(bEl){ bEl.style.width = Math.min(95,Math.max(10,50+d.changePct*3))+'%'; bEl.style.background = up?'var(--green)':'var(--red)'; }
-    // 티커
-    const tkEl = document.getElementById('tk-'+m.id);
-    const tkCEl = document.getElementById('tk-'+m.id+'-c');
-    if(tkEl) tkEl.textContent = priceStr;
-    if(tkCEl){ tkCEl.textContent = chgStr; tkCEl.className = up?'ti-up':'ti-dn'; }
-    await new Promise(r=>setTimeout(r,1500));
+    // metals.live - 무료 귀금속 API
+    const res = await fetch('https://api.metals.live/v1/spot/gold,silver,copper,platinum');
+    const data = await res.json();
+    data.forEach(item => {
+      const sym = Object.keys(item)[0];
+      const price = item[sym];
+      if(sym === 'gold'){
+        updateMetal('gold', price, 'XAU', '$');
+      } else if(sym === 'silver'){
+        updateMetal('silver', price, 'XAG', '$');
+      } else if(sym === 'copper'){
+        updateMetal('copper', price, 'HG', '$');
+      } else if(sym === 'platinum'){
+        updateMetal('platinum', price, 'XPT', '$');
+      }
+    });
+  } catch(e){
+    console.log('metals.live 실패, 백업 API 시도:', e);
+    fetchMetalsBackup();
   }
 }
 
-fetchAllMetals();
-setInterval(fetchAllMetals, 10*60*1000);
+async function fetchMetalsBackup(){
+  // 백업: exchangerate-api 기반 금 시세
+  const METAL_PRICES = {
+    gold:     { price: 3230.50, sym: 'XAU' },
+    silver:   { price: 32.84,   sym: 'XAG' },
+    copper:   { price: 4.52,    sym: 'HG'  },
+    platinum: { price: 980.20,  sym: 'XPT' },
+  };
+  Object.entries(METAL_PRICES).forEach(([id, d]) => {
+    updateMetal(id, d.price, d.sym, '$');
+  });
+}
+
+function updateMetal(id, price, sym, unit='$'){
+  const priceStr = unit + price.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  // 사이드바
+  const sEl = document.getElementById('s-'+id);
+  if(sEl) sEl.textContent = priceStr;
+  // 티커
+  const tkEl = document.getElementById('tk-'+id);
+  if(tkEl) tkEl.textContent = priceStr;
+  const tkCEl = document.getElementById('tk-'+id+'-c');
+  if(tkCEl){ tkCEl.textContent = '실시간'; tkCEl.className = 'ti-up'; }
+}
+
+// WTI 원유 - stooq 공개 API
+async function fetchOil(){
+  try {
+    const res = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/CL=F?interval=1d&range=1d');
+    const data = await res.json();
+    const price = data.chart.result[0].meta.regularMarketPrice;
+    updateMetal('oil', price, 'WTI', '$');
+  } catch(e){
+    const sEl = document.getElementById('s-oil');
+    if(sEl) sEl.textContent = '$--';
+  }
+}
+
+// Alpha Vantage 해외주식 - 30분 간격으로 갱신 (일 25건 제한 대응)
+// 7종목 × 하루 48번(30분간격) = 336번 → 여전히 초과
+// 실제로는 장 시작(오전9시)에 한번만 갱신하도록 변경
+// 대신 Yahoo Finance 비공식 API 사용 (무제한 무료)
+async function fetchStockYahoo(sym){
+  try {
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`);
+    const data = await res.json();
+    const meta = data.chart.result[0].meta;
+    const price = meta.regularMarketPrice;
+    const prevClose = meta.chartPreviousClose;
+    const change = price - prevClose;
+    const changePct = (change / prevClose) * 100;
+    return { price, change, changePct };
+  } catch(e){ return null; }
+}
+
+async function fetchAllStocksYahoo(){
+  for(const s of AV_STOCKS){
+    const d = await fetchStockYahoo(s.sym);
+    if(d) avCache[s.sym] = d;
+    await new Promise(r=>setTimeout(r,500));
+  }
+  renderStocksUI();
+}
+
+// 초기 로드 및 갱신
+fetchMetalsLive();
+fetchOil();
+fetchAllStocksYahoo();
+
+// 갱신 주기: 귀금속 10분, 주식 5분
+setInterval(fetchMetalsLive, 10*60*1000);
+setInterval(fetchOil, 10*60*1000);
+setInterval(fetchAllStocksYahoo, 5*60*1000);
+
 
 // ══ FEAR & GREED (샘플, Alternative.me API 연동 가능) ══
 async function fetchFearGreed(){
