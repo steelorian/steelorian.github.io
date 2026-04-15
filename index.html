@@ -647,21 +647,36 @@ function switchTab(t){
   });
 }
 
-// ── 방문자 카운터 ──
-function updateVisitor(){
+// ── 방문자 카운터 (CountAPI - 전세계 공유) ──
+// namespace: nexussignal-steelorian (고유 식별자)
+const COUNT_NS = 'nexussignal-steelorian';
+const TODAY = new Date().toISOString().slice(0,10).replace(/-/g,'');
+
+async function updateVisitor(){
   try {
-    const today = new Date().toISOString().slice(0,10);
-    let tc = parseInt(localStorage.getItem('nxtotal')||'0') + 1;
-    let td = parseInt(localStorage.getItem('nxday_'+today)||'0') + 1;
-    localStorage.setItem('nxtotal', tc);
-    localStorage.setItem('nxday_'+today, td);
-    document.getElementById('cv-total').textContent = tc.toLocaleString();
-    document.getElementById('cv-today').textContent = td.toLocaleString();
+    // 누적 방문자 카운트 (전세계 공유)
+    const totalRes = await fetch(`https://api.countapi.xyz/hit/${COUNT_NS}/total`);
+    const totalData = await totalRes.json();
+    const total = totalData.value || 0;
+
+    // 오늘 방문자 카운트 (날짜별 키)
+    const todayRes = await fetch(`https://api.countapi.xyz/hit/${COUNT_NS}/day-${TODAY}`);
+    const todayData = await todayRes.json();
+    const today = todayData.value || 0;
+
+    document.getElementById('cv-total').textContent = total.toLocaleString();
+    document.getElementById('cv-today').textContent = today.toLocaleString();
     const adEl = document.getElementById('ad-total');
-    if(adEl) adEl.textContent = tc.toLocaleString();
-  } catch(e){}
+    if(adEl) adEl.textContent = total.toLocaleString();
+  } catch(e){
+    // CountAPI 실패시 백업 표시
+    document.getElementById('cv-total').textContent = '집계 중';
+    document.getElementById('cv-today').textContent = '집계 중';
+  }
 }
 updateVisitor();
+// 5분마다 갱신 (새로고침 없이도 최신값 반영)
+setInterval(updateVisitor, 5*60*1000);
 
 // ── 뉴스 열기 ──
 function openNews(url){
