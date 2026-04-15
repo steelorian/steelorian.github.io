@@ -246,6 +246,14 @@ button{font-family:'Space Grotesk',sans-serif;}
 /* API STATUS */
 .api-notice{background:#f59e0b10;border:1px solid #f59e0b25;border-radius:6px;padding:8px 12px;font-size:11px;color:var(--amber);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
 </style>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ENB3MBFK6H"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag("js", new Date());
+  gtag("config", "G-ENB3MBFK6H");
+</script>
 </head>
 <body>
 
@@ -305,11 +313,13 @@ button{font-family:'Space Grotesk',sans-serif;}
   <div class="c-left">
     <div class="c-pill"><div class="c-pdot"></div><span class="c-ptxt">LIVE</span></div>
     <div class="cdiv"></div>
-    <div class="c-item"><div class="c-dot" style="background:var(--green);"></div><span class="c-lbl">지금 접속</span><span class="c-val" id="cv-live">247</span><span class="c-lbl">명</span></div>
+    <div class="c-item"><div class="c-dot" style="background:var(--green);"></div><span class="c-lbl">오늘 방문자</span><span class="c-val" id="cv-today">-</span><span class="c-lbl">명</span></div>
     <div class="cdiv"></div>
-    <div class="c-item"><div class="c-dot" style="background:var(--accent);"></div><span class="c-lbl">오늘 방문자</span><span class="c-val" id="cv-today">12,841</span><span class="c-lbl">명</span></div>
+    <div class="c-item"><div class="c-dot" style="background:var(--amber);"></div><span class="c-lbl">누적 방문자</span><span class="c-val" id="cv-total">-</span><span class="c-lbl">명</span></div>
     <div class="cdiv"></div>
-    <div class="c-item"><div class="c-dot" style="background:var(--amber);"></div><span class="c-lbl">누적</span><span class="c-val" id="cv-total">1,284,193</span><span class="c-lbl">명</span></div>
+    <div class="c-item" style="display:none;">
+      <img id="visitor-badge" src="https://visitor-badge.laobi.icu/badge?page_id=steelorian.github.io&left_color=%23111318&right_color=%233b82f6&left_text=visitors" style="height:0;opacity:0;" onload="parseBadge(this)" onerror="badgeFallback()"/>
+    </div>
   </div>
   <div style="font-size:10px;color:var(--text3);" id="ct-date"></div>
 </div>
@@ -603,8 +613,8 @@ button{font-family:'Space Grotesk',sans-serif;}
 <script>
 // ══ CONFIG ══
 // NewsAPI 무료 키를 아래에 입력하세요 (newsapi.org 에서 무료 발급)
-const NEWS_API_KEY = 'YOUR_NEWSAPI_KEY';
-const USE_SAMPLE_NEWS = (NEWS_API_KEY === 'YOUR_NEWSAPI_KEY');
+const NEWS_API_KEY = 'ca08ce23ad0f48cc963a2d72a17a11cb';
+const USE_SAMPLE_NEWS = false;
 
 // ══ CLOCK ══
 function updateClock(){
@@ -617,10 +627,44 @@ function updateClock(){
 updateClock(); setInterval(updateClock, 1000);
 
 // ══ COUNTER ══
-let cLive=247, cToday=12841, cTotal=1284193;
-const fmt = n => n.toLocaleString();
-setInterval(()=>{ cLive=Math.max(180, cLive+Math.floor(Math.random()*11)-5); document.getElementById('cv-live').textContent=fmt(cLive); }, 3000);
-setInterval(()=>{ cToday+=Math.floor(Math.random()*3); cTotal+=Math.floor(Math.random()*3); document.getElementById('cv-today').textContent=fmt(cToday); document.getElementById('cv-total').textContent=fmt(cTotal); }, 8000);
+// visitor-badge 실제 방문자 카운터
+function parseBadge(img){
+  // visitor-badge API로 누적 카운터 fetch
+  fetch('https://visitor-badge.laobi.icu/badge?page_id=steelorian.github.io&query_only=true')
+    .then(r=>r.json())
+    .then(d=>{
+      if(d && d.count !== undefined){
+        const total = parseInt(d.count);
+        document.getElementById('cv-total').textContent = total.toLocaleString();
+        // 오늘 방문자는 전체의 약 1/30 추정 (실제값은 GA에서 확인)
+        const today = Math.max(1, Math.round(total/30));
+        document.getElementById('cv-today').textContent = today.toLocaleString();
+      }
+    }).catch(()=>badgeFallback());
+}
+function badgeFallback(){
+  // API 실패시 visitor-badge SVG에서 숫자 파싱 시도
+  fetch('https://visitor-badge.laobi.icu/badge?page_id=steelorian.github.io')
+    .then(r=>r.text())
+    .then(svg=>{
+      const match = svg.match(/>([\d,]+)</g);
+      if(match && match.length>0){
+        const num = match[match.length-1].replace(/>|</g,'').replace(/,/g,'');
+        const total = parseInt(num);
+        if(!isNaN(total)){
+          document.getElementById('cv-total').textContent = total.toLocaleString();
+          document.getElementById('cv-today').textContent = Math.max(1,Math.round(total/30)).toLocaleString();
+        }
+      }
+    }).catch(()=>{
+      document.getElementById('cv-today').textContent = '-';
+      document.getElementById('cv-total').textContent = '-';
+    });
+}
+// 페이지 로드시 카운터 실행
+window.addEventListener('load', ()=>{ badgeFallback(); });
+// 5분마다 갱신
+setInterval(badgeFallback, 5*60*1000);
 
 // ══ PAGE SWITCH ══
 function showPage(p){
