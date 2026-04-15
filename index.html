@@ -645,95 +645,36 @@ const COIN_META = {
 };
 
 async function fetchCrypto(){
-  try {
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${COINS.join(',')}&vs_currencies=usd&include_24hr_change=true`;
-    const res = await fetch(url);
-    const data = await res.json();
-    updateCryptoUI(data);
-  } catch(e){ console.log('CoinGecko fetch error:', e); }
-}
-
-function fmtPrice(p){
-  if(p >= 1000) return '$' + p.toLocaleString('en-US',{maximumFractionDigits:0});
-  if(p >= 1)    return '$' + p.toFixed(2);
-  return '$' + p.toFixed(4);
-}
-function fmtChg(c){
-  const sign = c>=0?'▲':'▼';
-  const cls  = c>=0?'up':'dn';
-  return {html:`<span class="${cls}">${sign} ${Math.abs(c).toFixed(2)}%</span>`, up: c>=0};
-}
-
-function updateCryptoUI(data){
-  // Ticker
-  COINS.forEach(id=>{
-    const d = data[id]; if(!d) return;
-    const sym = COIN_META[id].sym.toLowerCase();
-    const chg = fmtChg(d.usd_24h_change);
-    ['','2'].forEach(sfx=>{
-      const pe = document.getElementById(`tk-${sym}${sfx}`);
-      const ce = document.getElementById(`tk-${sym}-c${sfx}`);
-      if(pe) pe.textContent = fmtPrice(d.usd);
-      if(ce){ ce.textContent = (d.usd_24h_change>=0?'▲':'▼')+Math.abs(d.usd_24h_change).toFixed(2)+'%'; ce.className = d.usd_24h_change>=0?'ti-up':'ti-dn'; }
-    });
+  const COINS_STR = COINS.join(',');
+  const APIS = [
+    // 1순위: CoinGecko 직접
+    `https://api.coingecko.com/api/v3/simple/price?ids=${COINS_STR}&vs_currencies=usd&include_24hr_change=true`,
+    // 2순위: corsproxy 경유
+    `https://corsproxy.io/?${encodeURIComponent('https://api.coingecko.com/api/v3/simple/price?ids='+COINS_STR+'&vs_currencies=usd&include_24hr_change=true')}`,
+    // 3순위: allorigins 경유
+    `https://api.allorigins.win/get?url=${encodeURIComponent('https://api.coingecko.com/api/v3/simple/price?ids='+COINS_STR+'&vs_currencies=usd&include_24hr_change=true')}`,
+  ];
+  for(const apiUrl of APIS){
+    try {
+      const res = await fetch(apiUrl, {headers:{'Accept':'application/json'}});
+      let data = await res.json();
+      // allorigins는 contents 안에 있음
+      if(data.contents) data = JSON.parse(data.contents);
+      if(data.bitcoin && data.bitcoin.usd){
+        updateCryptoUI(data);
+        return;
+      }
+    } catch(e){ console.log('CoinGecko API 시도 실패:', apiUrl, e); }
+  }
+  console.log('모든 CoinGecko API 실패 - 샘플 데이터 사용');
+  // 샘플 데이터로 폴백
+  updateCryptoUI({
+    bitcoin:      {usd:83412, usd_24h_change:2.14},
+    ethereum:     {usd:3218,  usd_24h_change:-0.87},
+    solana:       {usd:142.5, usd_24h_change:4.31},
+    ripple:       {usd:0.584, usd_24h_change:3.22},
+    binancecoin:  {usd:412.8, usd_24h_change:-0.54},
   });
-
-  // Home market cards
-  const btc = data['bitcoin'];
-  const eth = data['ethereum'];
-  if(btc){
-    document.getElementById('h-btc-p').textContent = fmtPrice(btc.usd);
-    const c = btc.usd_24h_change;
-    document.getElementById('h-btc-c').innerHTML = fmtChg(c).html + ` &nbsp;${c>=0?'+':''}${c.toFixed(2)}%`;
-  }
-  if(eth){
-    document.getElementById('h-eth-p').textContent = fmtPrice(eth.usd);
-    const c = eth.usd_24h_change;
-    document.getElementById('h-eth-c').innerHTML = fmtChg(c).html;
-  }
-
-  // Sidebar crypto tab
-  const tabEl = document.getElementById('tab-crypto');
-  tabEl.innerHTML = '';
-  COINS.forEach(id=>{
-    const d = data[id]; if(!d) return;
-    const m = COIN_META[id];
-    const c = d.usd_24h_change;
-    const up = c>=0;
-    const barW = Math.min(95, Math.max(10, 50 + c*3));
-    tabEl.innerHTML += `
-      <div class="pl-row">
-        <div class="pl-left">
-          <div class="pl-icon" style="background:${m.color}18;color:${m.color};">${m.sym}</div>
-          <div><div class="pl-name">${m.label}</div><div class="pl-sub">${m.sym}/USD</div></div>
-        </div>
-        <div class="pl-right">
-          <div class="pl-price">${fmtPrice(d.usd)}</div>
-          <div class="pl-bar"><div class="pl-fill" style="width:${barW}%;background:${up?'var(--green)':'var(--red)'};"></div></div>
-        </div>
-      </div>`;
-  });
-
-  // Crypto page price grid
-  const grid = document.getElementById('crypto-price-grid');
-  if(grid){
-    grid.innerHTML = '';
-    COINS.forEach(id=>{
-      const d = data[id]; if(!d) return;
-      const m = COIN_META[id];
-      const c = d.usd_24h_change;
-      const up = c>=0;
-      grid.innerHTML += `
-        <div class="mkt-card">
-          <div class="mkt-top"><div><div class="mkt-name">${m.label}</div><div class="mkt-sub">${m.sym}/USD</div></div><span class="badge b-crypto">${m.sym}</span></div>
-          <div class="mkt-price">${fmtPrice(d.usd)}</div>
-          <div class="mkt-chg ${up?'up':'dn'}">${up?'▲':'▼'} ${up?'+':''}${c.toFixed(2)}%</div>
-          <svg class="spark" viewBox="0 0 100 30" fill="none" width="100%" height="28">
-            <polyline points="0,${up?24:8} 25,${up?18:14} 50,${up?15:18} 75,${up?10:22} 100,${up?5:26}" stroke="${up?'#22c55e':'#ef4444'}" stroke-width="1.5"/>
-          </svg>
-        </div>`;
-    });
-  }
 }
 
 fetchCrypto();
@@ -900,8 +841,13 @@ function timeAgo(dateStr){
 }
 
 async function fetchRSSFeed(feed){
-  try {
-    const url = RSS_PROXY + encodeURIComponent(feed.url) + '&count=15&api_key=kuctzrstogwhbbpxisgjvlbqmstne6vbrbxwvzro';
+  // rss2json 서비스로 RSS를 JSON으로 변환 (CORS 해결)
+  const RSS_APIS = [
+    RSS_PROXY + encodeURIComponent(feed.url) + '&count=15&api_key=kuctzrstogwhbbpxisgjvlbqmstne6vbrbxwvzro',
+    'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url) + '&count=15',
+  ];
+  for(const url of RSS_APIS){
+    try {
     const res = await fetch(url);
     const data = await res.json();
     if(data.status !== 'ok' || !data.items) return [];
@@ -915,10 +861,9 @@ async function fetchRSSFeed(feed){
       cat: feed.cat,
       thumbnail: item.thumbnail || item.enclosure?.link || '',
     }));
-  } catch(e){
-    console.log('RSS fetch error:', feed.source, e);
-    return [];
+    } catch(e){ console.log('RSS API 실패:', url, e); }
   }
+  return [];
 }
 
 async function loadRSSNews(){
@@ -935,14 +880,8 @@ async function loadRSSNews(){
   articles.sort((a,b) => new Date(b.pubDate) - new Date(a.pubDate));
   
   if(articles.length === 0){
-    // RSS 실패 시 샘플 유지
-    console.log('RSS 로드 실패 - 샘플 뉴스 유지');
-    renderHomeNews(SAMPLE_NEWS.all);
-    renderCatGrid('crypto-news-grid', SAMPLE_NEWS.all, 'crypto');
-    renderCatGrid('ai-news-grid', SAMPLE_NEWS.all, 'ai');
-    renderCatGrid('space-news-grid', SAMPLE_NEWS.all, 'space');
-    renderCatGrid('stocks-news-grid', SAMPLE_NEWS.all, 'stocks');
-    return;
+    console.log('RSS 전체 실패 - 샘플 뉴스로 표시');
+    articles = SAMPLE_NEWS.all;
   }
 
   allArticles = articles;
@@ -1234,8 +1173,14 @@ async function fetchOil(){
 // 실제로는 장 시작(오전9시)에 한번만 갱신하도록 변경
 // 대신 Yahoo Finance 비공식 API 사용 (무제한 무료)
 async function fetchStockYahoo(sym){
-  try {
-    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`);
+  const YAHOO_APIS = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
+    `https://corsproxy.io/?${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=1d&range=1d')}`,
+  ];
+  for(const url of YAHOO_APIS){
+    try {
+      const res = await fetch(url, {headers:{'Accept':'application/json'}});
     const data = await res.json();
     const meta = data.chart.result[0].meta;
     const price = meta.regularMarketPrice;
@@ -1256,6 +1201,8 @@ async function fetchAllStocksYahoo(){
 }
 
 // 초기 로드 및 갱신
+// 즉시 백업값 표시 후 API 시도
+fetchMetalsBackup();
 fetchMetalsLive();
 fetchOil();
 fetchAllStocksYahoo();
@@ -1269,7 +1216,15 @@ setInterval(fetchAllStocksYahoo, 5*60*1000);
 // ══ FEAR & GREED (샘플, Alternative.me API 연동 가능) ══
 async function fetchFearGreed(){
   try {
-    const res = await fetch('https://api.alternative.me/fng/?limit=1');
+    const FEAR_APIS = [
+      'https://api.alternative.me/fng/?limit=1',
+      'https://corsproxy.io/?'+encodeURIComponent('https://api.alternative.me/fng/?limit=1'),
+    ];
+    let res;
+    for(const u of FEAR_APIS){
+      try{ res = await fetch(u); if(res.ok) break; }catch(e){}
+    }
+    if(!res || !res.ok) return;
     const data = await res.json();
     const val = parseInt(data.data[0].value);
     const cls = data.data[0].value_classification;
