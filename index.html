@@ -451,7 +451,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
             <span class="vote-pct-inline" id="vote-dn-inline"></span>
           </button>
         </div>
-        <div class="vote-result" id="vote-result" style="display:none;">
+        <div class="vote-result" id="vote-result" style="display:block;">
           <div class="vote-bars">
             <div class="vbar-row">
               <span class="vbar-lbl up">📈 상승</span>
@@ -1408,7 +1408,10 @@ function switchVote(asset){
   });
   const info = VOTE_ASSETS[asset];
   document.getElementById('vote-question').textContent = info.q;
-  // 해당 자산 투표 결과 로드
+  // 즉시 캐시에서 로드 후 서버 데이터 업데이트
+  const cachedUp = parseInt(localStorage.getItem('gv_up_'+asset+VOTE_DATE)||'0');
+  const cachedDn = parseInt(localStorage.getItem('gv_dn_'+asset+VOTE_DATE)||'0');
+  updateVoteUI(cachedUp, cachedDn);
   loadVoteData(asset);
   // 이미 투표했는지 확인
   const votedKey = 'nx_voted_'+VOTE_DATE+'_'+asset;
@@ -1453,23 +1456,32 @@ function updateVoteUI(upCount, dnCount){
   const upPct = total > 0 ? Math.round(upCount/total*100) : 50;
   const dnPct = 100 - upPct;
 
-  // 버튼 안 인라인 퍼센트
+  // 버튼 안 인라인 퍼센트 (항상 표시)
   const upInline = document.getElementById('vote-up-inline');
   const dnInline = document.getElementById('vote-dn-inline');
-  if(upInline) upInline.textContent = total > 0 ? upPct+'%' : '';
-  if(dnInline) dnInline.textContent = total > 0 ? dnPct+'%' : '';
+  if(upInline) upInline.textContent = upPct+'%';
+  if(dnInline) dnInline.textContent = dnPct+'%';
 
-  // 결과 바
-  if(total > 0){
-    document.getElementById('vote-result').style.display = 'flex';
-    document.getElementById('vote-bar-up').style.width = upPct+'%';
-    document.getElementById('vote-bar-dn').style.width = dnPct+'%';
-    document.getElementById('vote-up-pct').textContent = upPct+'%';
-    document.getElementById('vote-dn-pct').textContent = dnPct+'%';
-    document.getElementById('vote-up-cnt').textContent = '('+upCount.toLocaleString()+'명)';
-    document.getElementById('vote-dn-cnt').textContent = '('+dnCount.toLocaleString()+'명)';
-    document.getElementById('vote-count').textContent = '전세계 총 '+total.toLocaleString()+'명 참여';
-  }
+  // 결과 바 (항상 표시)
+  const resultEl = document.getElementById('vote-result');
+  if(resultEl) resultEl.style.display = 'block';
+
+  const barUp = document.getElementById('vote-bar-up');
+  const barDn = document.getElementById('vote-bar-dn');
+  if(barUp) barUp.style.width = upPct+'%';
+  if(barDn) barDn.style.width = dnPct+'%';
+
+  const upPctEl = document.getElementById('vote-up-pct');
+  const dnPctEl = document.getElementById('vote-dn-pct');
+  const upCntEl = document.getElementById('vote-up-cnt');
+  const dnCntEl = document.getElementById('vote-dn-cnt');
+  const cntEl   = document.getElementById('vote-count');
+
+  if(upPctEl) upPctEl.textContent = upPct+'%';
+  if(dnPctEl) dnPctEl.textContent = dnPct+'%';
+  if(upCntEl) upCntEl.textContent = total > 0 ? upCount.toLocaleString()+'명' : '0명';
+  if(dnCntEl) dnCntEl.textContent = total > 0 ? dnCount.toLocaleString()+'명' : '0명';
+  if(cntEl)   cntEl.textContent   = total > 0 ? '전세계 총 '+total.toLocaleString()+'명 참여' : '첫 번째 투표자가 되어보세요!';
 }
 
 async function vote(dir){
@@ -1512,7 +1524,8 @@ async function vote(dir){
   } catch(e){ /* 로컬 캐시값 유지 */ }
 }
 
-// 초기 로드 - 모든 자산 결과 미리 로드 + 투표 상태 복원
+// 초기 로드 - 즉시 UI 표시 후 서버 데이터 로드
+updateVoteUI(0, 0);  // 바로 UI 표시
 loadVoteData('BTC');
 loadVoteData('TSLA');
 loadVoteData('GOLD');
