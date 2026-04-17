@@ -968,9 +968,7 @@ async function toggleSummary(idx, article){
     }
   } catch(e){
     // 폴백: 직접 텍스트 분할
-    const pts=desc.replace(/\./g,'.
-').split('
-').map(s=>s.trim()).filter(s=>s.length>8).slice(0,3);
+    const pts=desc.split(/[.!?]/).map(s=>s.trim()).filter(s=>s.length>8).slice(0,3);
     const html=buildSummaryHTML(pts.length?pts:[title.slice(0,60)],[]);
     summaryCache[idx]=html;
     sumEl.innerHTML=html;
