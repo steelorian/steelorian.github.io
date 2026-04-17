@@ -124,16 +124,29 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .vote-card{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;margin-bottom:16px;}
 .vote-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 .vote-title-icon{font-size:14px;}
+.vote-tabs{display:flex;gap:4px;margin-bottom:10px;background:var(--bg3);border-radius:6px;padding:3px;}
+.vtab{flex:1;text-align:center;padding:5px 8px;font-size:11px;color:var(--text3);cursor:pointer;border-radius:4px;border:none;background:none;font-family:'Space Grotesk',sans-serif;transition:all 0.15s;font-weight:500;}
+.vtab.on{background:var(--bg4);color:var(--text);}
 .vote-question{font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px;text-align:center;}
-.vote-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
-.vote-btn{padding:10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px;}
-.vote-btn:hover{border-color:var(--border3);color:var(--text);}
+.vote-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.vote-btn{padding:12px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:column;}
+.vote-btn:hover:not(:disabled){border-color:var(--border3);color:var(--text);}
 .vote-btn.voted-up{background:#22c55e18;border-color:#22c55e40;color:var(--green);}
 .vote-btn.voted-dn{background:#ef444418;border-color:#ef444440;color:var(--red);}
-.vote-result{display:none;}
-.vote-result-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:6px;}
-.vr-up{height:100%;background:var(--green);border-radius:3px;transition:width 0.5s;}
-.vote-result-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);}
+.vote-pct-inline{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;}
+.vote-result-wrap{display:none;}
+.vote-bars{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+.vbar-row{display:flex;align-items:center;gap:8px;}
+.vbar-lbl{font-size:11px;font-weight:500;min-width:52px;}
+.vbar-lbl.up{color:var(--green);}
+.vbar-lbl.dn{color:var(--red);}
+.vbar-track{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.vbar-fill-up{height:100%;background:var(--green);border-radius:4px;transition:width 0.6s ease;}
+.vbar-fill-dn{height:100%;background:var(--red);border-radius:4px;transition:width 0.6s ease;}
+.vbar-pct{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;min-width:34px;text-align:right;}
+.vbar-pct.up{color:var(--green);}
+.vbar-pct.dn{color:var(--red);}
+.vbar-cnt{font-size:10px;color:var(--text3);min-width:36px;}
 .vote-count{font-size:10px;color:var(--text3);text-align:center;margin-top:4px;}
 
 /* ══ 뉴스 카드 (요약 포함) ══ */
@@ -419,20 +432,42 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
       <!-- 투표 -->
       <div class="vote-card">
-        <div class="vote-title"><span class="vote-title-icon">🗳️</span><span id="vote-title-txt">오늘의 시장 예측</span></div>
-        <div class="vote-question" id="vote-question">내일 비트코인은?</div>
+        <div class="vote-title"><span class="vote-title-icon">🗳️</span><span>오늘의 시장 예측</span></div>
+        <div class="vote-tabs">
+          <button class="vtab on" onclick="switchVote('BTC')">₿ 비트코인</button>
+          <button class="vtab" onclick="switchVote('TSLA')">⚡ 테슬라</button>
+          <button class="vtab" onclick="switchVote('GOLD')">🥇 금</button>
+        </div>
+        <div class="vote-question" id="vote-question">내일 비트코인은 상승할까요?</div>
         <div class="vote-btns">
-          <button class="vote-btn" id="vote-up-btn" onclick="vote('up')">📈 상승</button>
-          <button class="vote-btn" id="vote-dn-btn" onclick="vote('down')">📉 하락</button>
+          <button class="vote-btn" id="vote-up-btn" onclick="vote('up')">
+            <span style="font-size:18px;">📈</span>
+            <span>상승</span>
+            <span class="vote-pct-inline" id="vote-up-inline"></span>
+          </button>
+          <button class="vote-btn" id="vote-dn-btn" onclick="vote('down')">
+            <span style="font-size:18px;">📉</span>
+            <span>하락</span>
+            <span class="vote-pct-inline" id="vote-dn-inline"></span>
+          </button>
         </div>
-        <div class="vote-result" id="vote-result">
-          <div class="vote-result-bar"><div class="vr-up" id="vote-bar"></div></div>
-          <div class="vote-result-row">
-            <span id="vote-up-pct">--% 상승</span>
-            <span id="vote-dn-pct">하락 --%</span>
+        <div class="vote-result" id="vote-result" style="display:none;">
+          <div class="vote-bars">
+            <div class="vbar-row">
+              <span class="vbar-lbl up">📈 상승</span>
+              <div class="vbar-track"><div class="vbar-fill-up" id="vote-bar-up" style="width:50%;"></div></div>
+              <span class="vbar-pct up" id="vote-up-pct">50%</span>
+              <span class="vbar-cnt" id="vote-up-cnt"></span>
+            </div>
+            <div class="vbar-row">
+              <span class="vbar-lbl dn">📉 하락</span>
+              <div class="vbar-track"><div class="vbar-fill-dn" id="vote-bar-dn" style="width:50%;"></div></div>
+              <span class="vbar-pct dn" id="vote-dn-pct">50%</span>
+              <span class="vbar-cnt" id="vote-dn-cnt"></span>
+            </div>
           </div>
+          <div class="vote-count" id="vote-count"></div>
         </div>
-        <div class="vote-count" id="vote-count"></div>
       </div>
 
       <div class="ad-strip">
@@ -1356,67 +1391,107 @@ function renderWatchlist(){
 }
 renderWatchlist();
 
-// ── 투표 시스템 (CounterAPI - 전세계 공유) ──
-const VOTE_DATE=new Date().toISOString().slice(0,10).replace(/-/g,'');
-const VOTE_NS='nexussignal-vote';
-const VOTED_KEY='nx_voted_'+VOTE_DATE;
+// ── 투표 시스템 (전세계 공유 - CounterAPI) ──
+const VOTE_DATE = new Date().toISOString().slice(0,10).replace(/-/g,'');
+const VOTE_NS = 'nexussignal2026';
+const VOTE_ASSETS = {
+  BTC:  { q:'내일 비트코인은 상승할까요?',  emoji:'₿' },
+  TSLA: { q:'내일 테슬라 주가는 상승할까요?', emoji:'⚡' },
+  GOLD: { q:'내일 금 가격은 상승할까요?',    emoji:'🥇' },
+};
+let currentVoteAsset = 'BTC';
 
-async function loadVoteData(){
-  try {
-    const [ur,dr]=await Promise.all([
-      fetch('https://api.counterapi.dev/v1/'+VOTE_NS+'/up'+VOTE_DATE+'/get'),
-      fetch('https://api.counterapi.dev/v1/'+VOTE_NS+'/dn'+VOTE_DATE+'/get')
-    ]);
-    const [ud,dd]=await Promise.all([ur.json(),dr.json()]);
-    const upCount=ud.count||0;
-    const dnCount=dd.count||0;
-    updateVoteUI(upCount,dnCount);
-  } catch(e){}
+function switchVote(asset){
+  currentVoteAsset = asset;
+  document.querySelectorAll('.vtab').forEach((b,i)=>{
+    b.classList.toggle('on', Object.keys(VOTE_ASSETS)[i] === asset);
+  });
+  const info = VOTE_ASSETS[asset];
+  document.getElementById('vote-question').textContent = info.q;
+  // 해당 자산 투표 결과 로드
+  loadVoteData(asset);
+  // 이미 투표했는지 확인
+  const votedKey = 'nx_voted_'+VOTE_DATE+'_'+asset;
+  const alreadyVoted = localStorage.getItem(votedKey);
+  document.getElementById('vote-up-btn').disabled = !!alreadyVoted;
+  document.getElementById('vote-dn-btn').disabled = !!alreadyVoted;
+  document.getElementById('vote-up-btn').classList.remove('voted-up','voted-dn');
+  document.getElementById('vote-dn-btn').classList.remove('voted-up','voted-dn');
+  if(alreadyVoted === 'up') document.getElementById('vote-up-btn').classList.add('voted-up');
+  if(alreadyVoted === 'down') document.getElementById('vote-dn-btn').classList.add('voted-dn');
 }
 
-function updateVoteUI(upCount,dnCount){
-  const total=upCount+dnCount;
-  if(total===0) return;
-  const upPct=Math.round(upCount/total*100);
-  const dnPct=100-upPct;
-  document.getElementById('vote-result').style.display='block';
-  document.getElementById('vote-bar').style.width=upPct+'%';
-  document.getElementById('vote-up-pct').textContent=upPct+'% 상승 ('+upCount.toLocaleString()+'명)';
-  document.getElementById('vote-dn-pct').textContent='하락 '+dnPct+'% ('+dnCount.toLocaleString()+'명)';
-  document.getElementById('vote-count').textContent='전세계 총 '+total.toLocaleString()+'명 참여';
+async function loadVoteData(asset){
+  asset = asset || currentVoteAsset;
+  try {
+    const key = VOTE_NS+'-'+asset+'-'+VOTE_DATE;
+    const [ur, dr] = await Promise.all([
+      fetch('https://api.counterapi.dev/v1/'+key+'-up/get'),
+      fetch('https://api.counterapi.dev/v1/'+key+'-dn/get'),
+    ]);
+    const [ud, dd] = await Promise.all([ur.json(), dr.json()]);
+    updateVoteUI(ud.count||0, dd.count||0);
+  } catch(e){
+    updateVoteUI(0, 0);
+  }
+}
+
+function updateVoteUI(upCount, dnCount){
+  const total = upCount + dnCount;
+  const upPct = total > 0 ? Math.round(upCount/total*100) : 50;
+  const dnPct = 100 - upPct;
+
+  // 버튼 안 인라인 퍼센트
+  const upInline = document.getElementById('vote-up-inline');
+  const dnInline = document.getElementById('vote-dn-inline');
+  if(upInline) upInline.textContent = total > 0 ? upPct+'%' : '';
+  if(dnInline) dnInline.textContent = total > 0 ? dnPct+'%' : '';
+
+  // 결과 바
+  if(total > 0){
+    document.getElementById('vote-result').style.display = 'flex';
+    document.getElementById('vote-bar-up').style.width = upPct+'%';
+    document.getElementById('vote-bar-dn').style.width = dnPct+'%';
+    document.getElementById('vote-up-pct').textContent = upPct+'%';
+    document.getElementById('vote-dn-pct').textContent = dnPct+'%';
+    document.getElementById('vote-up-cnt').textContent = '('+upCount.toLocaleString()+'명)';
+    document.getElementById('vote-dn-cnt').textContent = '('+dnCount.toLocaleString()+'명)';
+    document.getElementById('vote-count').textContent = '전세계 총 '+total.toLocaleString()+'명 참여';
+  }
 }
 
 async function vote(dir){
-  // 하루 1회 제한 (기기별)
-  if(localStorage.getItem(VOTED_KEY)){
-    alert('오늘은 이미 투표하셨습니다!');
+  const votedKey = 'nx_voted_'+VOTE_DATE+'_'+currentVoteAsset;
+  if(localStorage.getItem(votedKey)){
+    alert('오늘 이 항목은 이미 투표하셨습니다!');
     return;
   }
-  localStorage.setItem(VOTED_KEY,'1');
-  const btn=dir==='up'?document.getElementById('vote-up-btn'):document.getElementById('vote-dn-btn');
-  btn.classList.add(dir==='up'?'voted-up':'voted-dn');
-  document.getElementById('vote-up-btn').disabled=true;
-  document.getElementById('vote-dn-btn').disabled=true;
+  // 즉시 UI 반영
+  localStorage.setItem(votedKey, dir);
+  const upBtn = document.getElementById('vote-up-btn');
+  const dnBtn = document.getElementById('vote-dn-btn');
+  upBtn.disabled = true;
+  dnBtn.disabled = true;
+  if(dir === 'up') upBtn.classList.add('voted-up');
+  else dnBtn.classList.add('voted-dn');
 
+  // 서버 카운트 증가
   try {
-    // CounterAPI로 카운트 증가 (전세계 공유)
-    const key=dir==='up'?'up':'dn';
-    const r=await fetch('https://api.counterapi.dev/v1/'+VOTE_NS+'/'+key+VOTE_DATE+'/up');
-    const d=await r.json();
-    // 반대편 카운트도 가져와서 UI 업데이트
-    await loadVoteData();
+    const key = VOTE_NS+'-'+currentVoteAsset+'-'+VOTE_DATE;
+    await fetch('https://api.counterapi.dev/v1/'+key+'-'+dir+'/up');
+    await loadVoteData(currentVoteAsset);
   } catch(e){
-    // 오프라인 폴백
-    loadVoteData();
+    // 로컬 폴백
+    const localUp = parseInt(localStorage.getItem('lv_up_'+currentVoteAsset)||'0') + (dir==='up'?1:0);
+    const localDn = parseInt(localStorage.getItem('lv_dn_'+currentVoteAsset)||'0') + (dir==='down'?1:0);
+    localStorage.setItem('lv_up_'+currentVoteAsset, localUp);
+    localStorage.setItem('lv_dn_'+currentVoteAsset, localDn);
+    updateVoteUI(localUp, localDn);
   }
 }
 
-// 페이지 로드시 현재 투표 결과 표시
-loadVoteData();
-if(localStorage.getItem(VOTED_KEY)){
-  document.getElementById('vote-up-btn').disabled=true;
-  document.getElementById('vote-dn-btn').disabled=true;
-}
+// 초기 로드
+loadVoteData('BTC');
 
 // ── Formspree ──
 async function handleSubmit(e){
