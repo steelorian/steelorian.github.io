@@ -1423,16 +1423,28 @@ function switchVote(asset){
 
 async function loadVoteData(asset){
   asset = asset || currentVoteAsset;
+  // localStorage에서 먼저 로드 (즉시 표시)
+  const localUp = parseInt(localStorage.getItem('gv_up_'+asset+VOTE_DATE)||'0');
+  const localDn = parseInt(localStorage.getItem('gv_dn_'+asset+VOTE_DATE)||'0');
+  if(localUp+localDn > 0) updateVoteUI(localUp, localDn);
+
   try {
     const key = VOTE_NS+'-'+asset+'-'+VOTE_DATE;
+    // counterapi.dev: /info 로 조회 (카운트 증가 없이)
     const [ur, dr] = await Promise.all([
-      fetch('https://api.counterapi.dev/v1/'+key+'-up/get'),
-      fetch('https://api.counterapi.dev/v1/'+key+'-dn/get'),
+      fetch('https://api.counterapi.dev/v1/'+key+'-up/info'),
+      fetch('https://api.counterapi.dev/v1/'+key+'-dn/info'),
     ]);
     const [ud, dd] = await Promise.all([ur.json(), dr.json()]);
-    updateVoteUI(ud.count||0, dd.count||0);
+    const upCount = ud.count||localUp;
+    const dnCount = dd.count||localDn;
+    // 서버값 로컬에 캐시 (새로고침 후에도 유지)
+    localStorage.setItem('gv_up_'+asset+VOTE_DATE, upCount);
+    localStorage.setItem('gv_dn_'+asset+VOTE_DATE, dnCount);
+    updateVoteUI(upCount, dnCount);
   } catch(e){
-    updateVoteUI(0, 0);
+    // API 실패해도 로컬 캐시값으로 표시
+    updateVoteUI(localUp, localDn);
   }
 }
 
@@ -1466,7 +1478,6 @@ async function vote(dir){
     alert('오늘 이 항목은 이미 투표하셨습니다!');
     return;
   }
-  // 즉시 UI 반영
   localStorage.setItem(votedKey, dir);
   const upBtn = document.getElementById('vote-up-btn');
   const dnBtn = document.getElementById('vote-dn-btn');
@@ -1475,23 +1486,48 @@ async function vote(dir){
   if(dir === 'up') upBtn.classList.add('voted-up');
   else dnBtn.classList.add('voted-dn');
 
-  // 서버 카운트 증가
+  // 로컬 캐시 즉시 업데이트 (새로고침 후에도 유지)
+  const cacheKeyUp = 'gv_up_'+currentVoteAsset+VOTE_DATE;
+  const cacheKeyDn = 'gv_dn_'+currentVoteAsset+VOTE_DATE;
+  const curUp = parseInt(localStorage.getItem(cacheKeyUp)||'0');
+  const curDn = parseInt(localStorage.getItem(cacheKeyDn)||'0');
+  const newUp = curUp + (dir==='up'?1:0);
+  const newDn = curDn + (dir==='down'?1:0);
+  localStorage.setItem(cacheKeyUp, newUp);
+  localStorage.setItem(cacheKeyDn, newDn);
+  updateVoteUI(newUp, newDn);
+
+  // 서버 카운트 증가 (백그라운드)
   try {
     const key = VOTE_NS+'-'+currentVoteAsset+'-'+VOTE_DATE;
-    await fetch('https://api.counterapi.dev/v1/'+key+'-'+dir+'/up');
+    const r = await fetch('https://api.counterapi.dev/v1/'+key+'-'+dir+'/up');
+    const d = await r.json();
+    // 서버 실제값으로 캐시 업데이트
+    if(d.count){
+      if(dir==='up') localStorage.setItem(cacheKeyUp, d.count);
+      else localStorage.setItem(cacheKeyDn, d.count);
+    }
+    // 전체 결과 다시 로드
     await loadVoteData(currentVoteAsset);
-  } catch(e){
-    // 로컬 폴백
-    const localUp = parseInt(localStorage.getItem('lv_up_'+currentVoteAsset)||'0') + (dir==='up'?1:0);
-    const localDn = parseInt(localStorage.getItem('lv_dn_'+currentVoteAsset)||'0') + (dir==='down'?1:0);
-    localStorage.setItem('lv_up_'+currentVoteAsset, localUp);
-    localStorage.setItem('lv_dn_'+currentVoteAsset, localDn);
-    updateVoteUI(localUp, localDn);
-  }
+  } catch(e){ /* 로컬 캐시값 유지 */ }
 }
 
-// 초기 로드
+// 초기 로드 - 모든 자산 결과 미리 로드 + 투표 상태 복원
 loadVoteData('BTC');
+loadVoteData('TSLA');
+loadVoteData('GOLD');
+
+// 현재 자산(BTC) 투표 상태 복원
+(function restoreVoteState(){
+  const votedKey = 'nx_voted_'+VOTE_DATE+'_BTC';
+  const voted = localStorage.getItem(votedKey);
+  if(voted){
+    document.getElementById('vote-up-btn').disabled = true;
+    document.getElementById('vote-dn-btn').disabled = true;
+    if(voted==='up') document.getElementById('vote-up-btn').classList.add('voted-up');
+    else document.getElementById('vote-dn-btn').classList.add('voted-dn');
+  }
+})();
 
 // ── Formspree ──
 async function handleSubmit(e){
