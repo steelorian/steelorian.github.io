@@ -8,7 +8,6 @@
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-ENB3MBFK6H"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-ENB3MBFK6H');</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -741,10 +740,46 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
 
-// ── Supabase 초기화 ──
-const SUPABASE_URL = 'https://ispiptsdciymfdaniopk.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_dsbGgfit5K8GghfydCTAsg_ME69bTwX';
-const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ── Supabase REST API (라이브러리 없이 직접 호출) ──
+const SB_URL = 'https://ispiptsdciymfdaniopk.supabase.co';
+const SB_KEY = 'sb_publishable_dsbGgfit5K8GghfydCTAsg_ME69bTwX';
+
+// Supabase REST API 헬퍼
+const sbHeaders = {
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=minimal'
+};
+
+async function sbSelect(table, filters={}, countOnly=false){
+  let url = SB_URL+'/rest/v1/'+table+'?';
+  const params = [];
+  Object.entries(filters).forEach(([k,v])=>params.push(k+'=eq.'+encodeURIComponent(v)));
+  if(params.length) url += params.join('&');
+  const headers = {...sbHeaders};
+  if(countOnly){
+    headers['Prefer'] = 'count=exact';
+    url += (params.length?'&':'')+'select=*';
+  } else {
+    url += (params.length?'&':'')+'select=*';
+  }
+  const r = await fetch(url, {headers});
+  if(countOnly){
+    const count = parseInt(r.headers.get('Content-Range')?.split('/')[1]||'0');
+    return count;
+  }
+  return await r.json();
+}
+
+async function sbInsert(table, data){
+  const r = await fetch(SB_URL+'/rest/v1/'+table, {
+    method: 'POST',
+    headers: sbHeaders,
+    body: JSON.stringify(data)
+  });
+  return r.ok;
+}
 const FORMSPREE_ID = 'xjgjkjvq';
 
 // ── 샘플 뉴스 ──
@@ -804,7 +839,7 @@ const TODAY_DATE = new Date().toISOString().slice(0,10);
 async function updateVisitor(){
   try {
     // 방문 기록 INSERT
-    await supabase.from('visitors').insert({ visit_date: TODAY_DATE });
+    await sb.from('visitors').insert({ visit_date: TODAY_DATE });
 
     // 오늘 방문자 수
     const { count: todayCount } = await supabase
@@ -1441,23 +1476,18 @@ function switchVote(asset){
 
 async function loadVoteData(asset){
   asset = asset || currentVoteAsset;
-  // 로컬 캐시 즉시 표시
   const localUp = parseInt(localStorage.getItem('gv_up_'+asset+VOTE_DATE)||'0');
   const localDn = parseInt(localStorage.getItem('gv_dn_'+asset+VOTE_DATE)||'0');
   updateVoteUI(localUp, localDn);
-
   try {
-    const voteDate = VOTE_DATE;
-    const [upRes, dnRes] = await Promise.all([
-      supabase.from('votes').select('*',{count:'exact',head:true}).eq('asset',asset).eq('direction','up').eq('vote_date',voteDate),
-      supabase.from('votes').select('*',{count:'exact',head:true}).eq('asset',asset).eq('direction','down').eq('vote_date',voteDate)
+    const [up, dn] = await Promise.all([
+      sbSelect('votes', {asset, direction:'up', vote_date:VOTE_DATE}, true),
+      sbSelect('votes', {asset, direction:'down', vote_date:VOTE_DATE}, true)
     ]);
-    const up = upRes.count || 0;
-    const dn = dnRes.count || 0;
     localStorage.setItem('gv_up_'+asset+VOTE_DATE, up);
     localStorage.setItem('gv_dn_'+asset+VOTE_DATE, dn);
     updateVoteUI(up, dn);
-  } catch(e){ updateVoteUI(localUp, localDn); }
+  } catch(e){}
 }
 
 async function vote(dir){
@@ -1488,7 +1518,7 @@ async function vote(dir){
 
   // Supabase에 실제 투표 INSERT
   try {
-    await supabase.from('votes').insert({
+    await sbInsert('votes', {
       asset: currentVoteAsset,
       direction: dir,
       vote_date: VOTE_DATE
