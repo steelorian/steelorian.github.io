@@ -398,11 +398,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <!-- AI 시장 요약 배너 -->
 <div class="ai-summary-bar">
   <div class="ai-summary-label"><div class="ai-pulse"></div>AI 시장 분석</div>
-  <div class="ai-summary-text" id="ai-market-summary">시장 데이터 분석 중...</div>
-  <div class="ai-market-state">
-    <div class="market-state-badge" id="market-state-badge">--</div>
-    <div class="ai-prob" id="ai-prob">상승확률 --</div>
+  <div class="ai-market-state" style="margin-right:10px;">
+    <div class="market-state-badge" id="market-state-badge" style="white-space:nowrap;">분석 중...</div>
+    <div class="ai-prob" id="ai-prob" style="white-space:nowrap;"></div>
   </div>
+  <div class="ai-summary-text" id="ai-market-summary" style="color:var(--text2);font-size:11px;">Claude AI가 실시간 시세를 분석하고 있습니다...</div>
 </div>
 
 <!-- ══ HOME ══ -->
@@ -874,40 +874,44 @@ async function generateMarketSummary(){
   const btc=cryptoData.bitcoin;
   const nvda=stockData.NVDA;
   if(!btc) return;
+
+  // 즉시 기술적 분석 기반 결과 표시 (API 결과 나오기 전)
+  const btcChg=btc?.usd_24h_change||0;
+  const quickState=btcChg>2?'BULL':btcChg<-2?'BEAR':'NEUTRAL';
+  const quickProb=Math.round(50+btcChg*3);
+  applyMarketState(quickState, Math.min(85,Math.max(20,quickProb)),
+    `BTC ${btcChg>=0?'▲':'▼'}${Math.abs(btcChg).toFixed(2)}% · ${btcChg>1?'강세 흐름 지속':btcChg<-1?'하락 압력 지속':'횡보 구간'}`);
+
   try {
     const res=await fetch(CLAUDE_API,{
       method:'POST',
       headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
-        max_tokens:200,
-        messages:[{role:'user',content:`현재 시장 데이터:
-BTC: $${btc.usd?.toLocaleString()} (${btc.usd_24h_change?.toFixed(2)}%)
-NVDA: ${nvda?'$'+nvda.price?.toFixed(2):'데이터없음'}
-
-다음 JSON 형식으로만 응답 (다른 텍스트 없이):
-{"summary":"시장 한줄 요약 25자 이내","state":"BULL 또는 BEAR 또는 NEUTRAL","prob":상승확률숫자(0-100)}`}]
+        max_tokens:150,
+        messages:[{role:'user',content:'현재 BTC: $'+btc.usd?.toLocaleString()+'('+btcChg.toFixed(2)+'%), NVDA: '+(nvda?'$'+nvda.price?.toFixed(2):'N/A')+'. 반드시 JSON만: {"summary":"20자이내한국어요약","state":"BULL또는BEAR또는NEUTRAL","prob":숫자}'}]
       })
     });
     const data=await res.json();
-    const text=data.content?.[0]?.text||'{}';
-    const clean=text.replace(/```json|```/g,'').trim();
-    const result=JSON.parse(clean);
-    document.getElementById('ai-market-summary').innerHTML=`<span>AI 분석:</span> ${result.summary||'시장 분석 중'}`;
-    const badge=document.getElementById('market-state-badge');
-    const prob=document.getElementById('ai-prob');
-    if(result.state==='BULL'){badge.textContent='📈 상승장';badge.className='market-state-badge state-bull';}
-    else if(result.state==='BEAR'){badge.textContent='📉 하락장';badge.className='market-state-badge state-bear';}
-    else{badge.textContent='📊 중립';badge.className='market-state-badge state-neutral';}
-    prob.textContent=`상승확률 ${result.prob||50}%`;
-  } catch(e){
-    const btcChg=btc?.usd_24h_change||0;
-    document.getElementById('ai-market-summary').innerHTML=`<span>AI 분석:</span> BTC ${btcChg>=0?'상승':'하락'} 중 — ${Math.abs(btcChg).toFixed(2)}% 변동. 전반적 시장 ${btcChg>1?'강세':'약세'} 흐름.`;
-    const badge=document.getElementById('market-state-badge');
-    badge.textContent=btcChg>1?'📈 상승장':btcChg<-1?'📉 하락장':'📊 중립';
-    badge.className='market-state-badge '+(btcChg>1?'state-bull':btcChg<-1?'state-bear':'state-neutral');
-    document.getElementById('ai-prob').textContent=`상승확률 ${btcChg>0?60:40}%`;
-  }
+    const text=data.content?.[0]?.text||'';
+    // JSON 추출 (마크다운 포함 여부 무관)
+    const match=text.match(/\{[^}]+\}/);
+    if(match){
+      const result=JSON.parse(match[0]);
+      applyMarketState(result.state||quickState, result.prob||quickProb, result.summary||'');
+    }
+  } catch(e){ /* 이미 즉시 결과 표시됨 */ }
+}
+
+function applyMarketState(state, prob, summary){
+  const badge=document.getElementById('market-state-badge');
+  const probEl=document.getElementById('ai-prob');
+  const sumEl=document.getElementById('ai-market-summary');
+  const stateMap={BULL:{text:'📈 상승장',cls:'state-bull'},BEAR:{text:'📉 하락장',cls:'state-bear'},NEUTRAL:{text:'📊 중립',cls:'state-neutral'}};
+  const s=stateMap[state]||stateMap.NEUTRAL;
+  if(badge){badge.textContent=s.text;badge.className='market-state-badge '+s.cls;}
+  if(probEl) probEl.textContent='상승확률 '+Math.round(prob)+'%';
+  if(sumEl&&summary) sumEl.textContent=summary;
 }
 
 // ── AI 뉴스 요약 ──
@@ -920,45 +924,67 @@ async function toggleSummary(idx, article){
     return;
   }
   sumEl.classList.add('open');
-  if(summaryCache[idx]){
-    sumEl.innerHTML=summaryCache[idx];
-    return;
-  }
+  if(summaryCache[idx]){ sumEl.innerHTML=summaryCache[idx]; return; }
   sumEl.innerHTML='<div class="sum-loading"><div class="sum-spinner"></div>AI가 요약 중...</div>';
+
+  const title=article.title||'';
+  const desc=(article.desc||title).slice(0,300);
+
   try {
     const res=await fetch(CLAUDE_API,{
       method:'POST',
       headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
-        max_tokens:300,
-        messages:[{role:'user',content:`다음 뉴스를 분석해서 JSON으로만 응답해줘:
-
-제목: ${article.title}
-내용: ${article.desc||article.title}
-
-형식:
-{"points":["핵심포인트1 15자이내","핵심포인트2","핵심포인트3"],"impacts":[{"label":"BTC","type":"pos 또는 neg 또는 neu"}]}`}]
+        max_tokens:400,
+        messages:[{role:'user',content:'다음 뉴스를 3줄로 요약하고 투자 영향을 분석해줘.\n\n제목: '+title+'\n내용: '+desc+'\n\n반드시 아래 JSON 형식만 출력해 (다른 설명 없이):\n{"p1":"첫번째핵심20자이내","p2":"두번째핵심20자이내","p3":"세번째핵심20자이내","impacts":[{"label":"BTC","type":"pos"},{"label":"NVDA","type":"neg"}]}\n\ntype은 pos(호재)/neg(악재)/neu(중립) 중 하나. impacts는 관련 종목만.'}]
       })
     });
     const data=await res.json();
-    const text=data.content?.[0]?.text||'{}';
-    const clean=text.replace(/```json|```/g,'').trim();
-    const result=JSON.parse(clean);
-    const html=`
-      <div class="ni-sum-title">✦ AI 3줄 요약</div>
-      <div class="ni-sum-points">
-        ${(result.points||[]).map(p=>`<div class="ni-sum-point"><span class="ni-sum-dot">▸</span>${p}</div>`).join('')}
-      </div>
-      ${result.impacts?.length?`<div class="ni-sum-impact">${result.impacts.map(i=>`<span class="impact-badge impact-${i.type||'neu'}">${i.label} ${i.type==='pos'?'▲ 호재':i.type==='neg'?'▼ 악재':'→ 중립'}</span>`).join('')}</div>`:''}`;
-    summaryCache[idx]=html;
-    sumEl.innerHTML=html;
+    const raw=data.content?.[0]?.text||'';
+
+    // JSON 블록 추출 (```json ... ``` 또는 { ... } 형태 모두 처리)
+    let result=null;
+    const patterns=[
+      /```json\s*([\s\S]*?)\s*```/,
+      /```\s*([\s\S]*?)\s*```/,
+      /(\{[\s\S]*\})/
+    ];
+    for(const pat of patterns){
+      const m=raw.match(pat);
+      if(m){
+        try{ result=JSON.parse(m[1]||m[0]); break; }catch(e){}
+      }
+    }
+
+    if(result&&(result.p1||result.points)){
+      const pts=result.points||[result.p1,result.p2,result.p3].filter(Boolean);
+      const impacts=result.impacts||[];
+      const html=buildSummaryHTML(pts,impacts);
+      summaryCache[idx]=html;
+      sumEl.innerHTML=html;
+    } else {
+      throw new Error('파싱 실패');
+    }
   } catch(e){
-    const pts=article.desc?article.desc.slice(0,120).split('.').filter(s=>s.trim().length>5).slice(0,3):['내용을 불러올 수 없습니다'];
-    const html=`<div class="ni-sum-title">✦ 핵심 요약</div><div class="ni-sum-points">${pts.map(p=>`<div class="ni-sum-point"><span class="ni-sum-dot">▸</span>${p.trim()}</div>`).join('')}</div>`;
+    // 폴백: 직접 텍스트 분할
+    const pts=desc.replace(/\./g,'.
+').split('
+').map(s=>s.trim()).filter(s=>s.length>8).slice(0,3);
+    const html=buildSummaryHTML(pts.length?pts:[title.slice(0,60)],[]);
     summaryCache[idx]=html;
     sumEl.innerHTML=html;
   }
+}
+
+function buildSummaryHTML(pts, impacts){
+  const typeMap={pos:'▲ 호재',neg:'▼ 악재',neu:'→ 중립'};
+  const clsMap={pos:'impact-pos',neg:'impact-neg',neu:'impact-neu'};
+  return `<div class="ni-sum-title">✦ AI 3줄 요약</div>
+    <div class="ni-sum-points">
+      ${pts.map(p=>`<div class="ni-sum-point"><span class="ni-sum-dot">▸</span>${p}</div>`).join('')}
+    </div>
+    ${impacts.length?`<div class="ni-sum-impact">${impacts.map(i=>`<span class="impact-badge ${clsMap[i.type]||'impact-neu'}">${i.label} ${typeMap[i.type]||'→ 중립'}</span>`).join('')}</div>`:''}`;
 }
 
 // ── 뉴스 렌더링 ──
@@ -1332,37 +1358,66 @@ function renderWatchlist(){
 }
 renderWatchlist();
 
-// ── 투표 시스템 ──
-const VOTE_KEY='nx_vote_'+new Date().toISOString().slice(0,10);
-let voteData=JSON.parse(localStorage.getItem('nx_vote_data')||'{"up":0,"down":0}');
+// ── 투표 시스템 (CounterAPI - 전세계 공유) ──
+const VOTE_DATE=new Date().toISOString().slice(0,10).replace(/-/g,'');
+const VOTE_NS='nexussignal-vote';
+const VOTED_KEY='nx_voted_'+VOTE_DATE;
 
-function vote(dir){
-  if(localStorage.getItem(VOTE_KEY)) return;
-  localStorage.setItem(VOTE_KEY,'1');
-  if(dir==='up') voteData.up++;
-  else voteData.down++;
-  localStorage.setItem('nx_vote_data',JSON.stringify(voteData));
-  document.getElementById('vote-up-btn').classList.toggle('voted-up',dir==='up');
-  document.getElementById('vote-dn-btn').classList.toggle('voted-dn',dir==='down');
-  showVoteResult();
+async function loadVoteData(){
+  try {
+    const [ur,dr]=await Promise.all([
+      fetch('https://api.counterapi.dev/v1/'+VOTE_NS+'/up'+VOTE_DATE+'/get'),
+      fetch('https://api.counterapi.dev/v1/'+VOTE_NS+'/dn'+VOTE_DATE+'/get')
+    ]);
+    const [ud,dd]=await Promise.all([ur.json(),dr.json()]);
+    const upCount=ud.count||0;
+    const dnCount=dd.count||0;
+    updateVoteUI(upCount,dnCount);
+  } catch(e){}
 }
 
-function showVoteResult(){
-  const total=voteData.up+voteData.down;
+function updateVoteUI(upCount,dnCount){
+  const total=upCount+dnCount;
   if(total===0) return;
-  const upPct=Math.round(voteData.up/total*100);
+  const upPct=Math.round(upCount/total*100);
   const dnPct=100-upPct;
   document.getElementById('vote-result').style.display='block';
   document.getElementById('vote-bar').style.width=upPct+'%';
-  document.getElementById('vote-up-pct').textContent=upPct+'% 상승';
-  document.getElementById('vote-dn-pct').textContent='하락 '+dnPct+'%';
-  document.getElementById('vote-count').textContent='총 '+total.toLocaleString()+'명 참여';
+  document.getElementById('vote-up-pct').textContent=upPct+'% 상승 ('+upCount.toLocaleString()+'명)';
+  document.getElementById('vote-dn-pct').textContent='하락 '+dnPct+'% ('+dnCount.toLocaleString()+'명)';
+  document.getElementById('vote-count').textContent='전세계 총 '+total.toLocaleString()+'명 참여';
 }
 
-if(localStorage.getItem(VOTE_KEY)){
+async function vote(dir){
+  // 하루 1회 제한 (기기별)
+  if(localStorage.getItem(VOTED_KEY)){
+    alert('오늘은 이미 투표하셨습니다!');
+    return;
+  }
+  localStorage.setItem(VOTED_KEY,'1');
+  const btn=dir==='up'?document.getElementById('vote-up-btn'):document.getElementById('vote-dn-btn');
+  btn.classList.add(dir==='up'?'voted-up':'voted-dn');
   document.getElementById('vote-up-btn').disabled=true;
   document.getElementById('vote-dn-btn').disabled=true;
-  showVoteResult();
+
+  try {
+    // CounterAPI로 카운트 증가 (전세계 공유)
+    const key=dir==='up'?'up':'dn';
+    const r=await fetch('https://api.counterapi.dev/v1/'+VOTE_NS+'/'+key+VOTE_DATE+'/up');
+    const d=await r.json();
+    // 반대편 카운트도 가져와서 UI 업데이트
+    await loadVoteData();
+  } catch(e){
+    // 오프라인 폴백
+    loadVoteData();
+  }
+}
+
+// 페이지 로드시 현재 투표 결과 표시
+loadVoteData();
+if(localStorage.getItem(VOTED_KEY)){
+  document.getElementById('vote-up-btn').disabled=true;
+  document.getElementById('vote-dn-btn').disabled=true;
 }
 
 // ── Formspree ──
