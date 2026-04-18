@@ -1460,6 +1460,40 @@ const VOTE_ASSETS = {
 };
 let currentVoteAsset = 'BTC';
 
+// ── 투표 UI 업데이트 ──
+function updateVoteUI(upCount, dnCount){
+  const total = upCount + dnCount;
+  const upPct = total > 0 ? Math.round(upCount/total*100) : 50;
+  const dnPct = 100 - upPct;
+
+  // 버튼 퍼센트
+  const ui = document.getElementById('vote-up-inline');
+  const di = document.getElementById('vote-dn-inline');
+  if(ui) ui.textContent = upPct+'%';
+  if(di) di.textContent = dnPct+'%';
+
+  // 결과 항상 표시
+  const r = document.getElementById('vote-result');
+  if(r) r.style.display = 'block';
+
+  const bu = document.getElementById('vote-bar-up');
+  const bd = document.getElementById('vote-bar-dn');
+  if(bu) bu.style.width = upPct+'%';
+  if(bd) bd.style.width = dnPct+'%';
+
+  const eu = document.getElementById('vote-up-pct');
+  const ed = document.getElementById('vote-dn-pct');
+  const cu = document.getElementById('vote-up-cnt');
+  const cd = document.getElementById('vote-dn-cnt');
+  const ct = document.getElementById('vote-count');
+
+  if(eu) eu.textContent = upPct+'%';
+  if(ed) ed.textContent = dnPct+'%';
+  if(cu) cu.textContent = upCount+'명';
+  if(cd) cd.textContent = dnCount+'명';
+  if(ct) ct.textContent = total > 0 ? '총 '+total+'명 참여' : '첫 번째로 투표해보세요!';
+}
+
 function switchVote(asset){
   currentVoteAsset = asset;
   document.querySelectorAll('.vtab').forEach((b,i)=>{
