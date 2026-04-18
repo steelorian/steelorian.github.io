@@ -739,6 +739,58 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ════════════════════════════════════════
 
 const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
+
+// ── Supabase REST API (라이브러리 없이 직접 호출) ──
+const SB_URL = 'https://ispiptsdciymfdaniopk.supabase.co';
+const SB_KEY = 'sb_publishable_dsbGgfit5K8GghfydCTAsg_ME69bTwX';
+
+// Supabase REST API 헬퍼
+const sbHeaders = {
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=minimal'
+};
+
+async function sbSelect(table, filters={}, countOnly=false){
+  let url = SB_URL+'/rest/v1/'+table+'?select=*';
+  Object.entries(filters).forEach(([k,v])=>{
+    url += '&'+k+'=eq.'+encodeURIComponent(v);
+  });
+  const headers = {
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer '+SB_KEY,
+    'Content-Type': 'application/json',
+  };
+  if(countOnly){
+    // Supabase count=exact: 응답 헤더 Content-Range 또는 본문 길이로 카운트
+    headers['Prefer'] = 'count=exact';
+    headers['Range-Unit'] = 'items';
+    headers['Range'] = '0-0'; // 최소한의 데이터만 요청
+  }
+  const r = await fetch(url, {headers});
+  if(countOnly){
+    // Content-Range: 0-0/총개수
+    const cr = r.headers.get('content-range') || r.headers.get('Content-Range') || '';
+    if(cr.includes('/')){
+      const total = parseInt(cr.split('/')[1]);
+      if(!isNaN(total)) return total;
+    }
+    // fallback: 전체 데이터 가져와서 length
+    const data = await r.json();
+    return Array.isArray(data) ? data.length : 0;
+  }
+  return await r.json();
+}
+
+async function sbInsert(table, data){
+  const r = await fetch(SB_URL+'/rest/v1/'+table, {
+    method: 'POST',
+    headers: sbHeaders,
+    body: JSON.stringify(data)
+  });
+  return r.ok;
+}
 const FORMSPREE_ID = 'xjgjkjvq';
 
 // ── 샘플 뉴스 ──
@@ -792,27 +844,27 @@ function switchTab(t){
   });
 }
 
-// ── 방문자 카운터 ──
+// ── 방문자 카운터 (Supabase) ──
+const TODAY_DATE = new Date().toISOString().slice(0,10);
+
 async function updateVisitor(){
-  const today=new Date().toISOString().slice(0,10);
   try {
-    const [tr,dr]=await Promise.all([
-      fetch('https://api.counterapi.dev/v1/nexussignal/total/up'),
-      fetch('https://api.counterapi.dev/v1/nexussignal/day'+today.replace(/-/g,'')+'/up')
-    ]);
-    const [td,dd]=await Promise.all([tr.json(),dr.json()]);
-    const total=td.count||0, day=dd.count||0;
-    document.getElementById('cv-total').textContent=total.toLocaleString();
-    document.getElementById('cv-today').textContent=day.toLocaleString();
-    const adEl=document.getElementById('ad-total');
-    if(adEl) adEl.textContent=total.toLocaleString();
+    await sbInsert('visitors', { visit_date: TODAY_DATE });
+    const todayRows = await sbSelect('visitors', {visit_date: TODAY_DATE});
+    const td = Array.isArray(todayRows) ? todayRows.length : 0;
+    const totalRows = await sbSelect('visitors', {});
+    const tt = Array.isArray(totalRows) ? totalRows.length : 0;
+    document.getElementById('cv-today').textContent = td.toLocaleString();
+    document.getElementById('cv-total').textContent = tt.toLocaleString();
+    const adEl = document.getElementById('ad-total');
+    if(adEl) adEl.textContent = tt.toLocaleString();
   } catch(e){
-    document.getElementById('cv-total').textContent='-';
-    document.getElementById('cv-today').textContent='-';
+    document.getElementById('cv-today').textContent = '-';
+    document.getElementById('cv-total').textContent = '-';
   }
 }
 updateVisitor();
-setInterval(updateVisitor,5*60*1000);
+setInterval(updateVisitor, 5*60*1000);
 
 // ── 뉴스 열기 ──
 function openNews(url){
@@ -1391,7 +1443,7 @@ function renderWatchlist(){
 }
 renderWatchlist();
 
-// ── 투표 시스템 (전세계 공유 - CounterAPI) ──
+// ── 투표 시스템 (Supabase - 전세계 공유) ──
 const VOTE_DATE = new Date().toISOString().slice(0,10).replace(/-/g,'');
 const VOTE_NS = 'nexussignal2026';
 const VOTE_ASSETS = {
@@ -1426,62 +1478,20 @@ function switchVote(asset){
 
 async function loadVoteData(asset){
   asset = asset || currentVoteAsset;
-  // localStorage에서 먼저 로드 (즉시 표시)
   const localUp = parseInt(localStorage.getItem('gv_up_'+asset+VOTE_DATE)||'0');
   const localDn = parseInt(localStorage.getItem('gv_dn_'+asset+VOTE_DATE)||'0');
-  if(localUp+localDn > 0) updateVoteUI(localUp, localDn);
-
+  updateVoteUI(localUp, localDn);
   try {
-    const key = VOTE_NS+'-'+asset+'-'+VOTE_DATE;
-    // counterapi.dev: /info 로 조회 (카운트 증가 없이)
-    const [ur, dr] = await Promise.all([
-      fetch('https://api.counterapi.dev/v1/'+key+'-up/info'),
-      fetch('https://api.counterapi.dev/v1/'+key+'-dn/info'),
+    const [upRows, dnRows] = await Promise.all([
+      sbSelect('votes', {asset:asset, direction:'up', vote_date:VOTE_DATE}),
+      sbSelect('votes', {asset:asset, direction:'down', vote_date:VOTE_DATE})
     ]);
-    const [ud, dd] = await Promise.all([ur.json(), dr.json()]);
-    const upCount = ud.count||localUp;
-    const dnCount = dd.count||localDn;
-    // 서버값 로컬에 캐시 (새로고침 후에도 유지)
-    localStorage.setItem('gv_up_'+asset+VOTE_DATE, upCount);
-    localStorage.setItem('gv_dn_'+asset+VOTE_DATE, dnCount);
-    updateVoteUI(upCount, dnCount);
-  } catch(e){
-    // API 실패해도 로컬 캐시값으로 표시
-    updateVoteUI(localUp, localDn);
-  }
-}
-
-function updateVoteUI(upCount, dnCount){
-  const total = upCount + dnCount;
-  const upPct = total > 0 ? Math.round(upCount/total*100) : 50;
-  const dnPct = 100 - upPct;
-
-  // 버튼 안 인라인 퍼센트 (항상 표시)
-  const upInline = document.getElementById('vote-up-inline');
-  const dnInline = document.getElementById('vote-dn-inline');
-  if(upInline) upInline.textContent = upPct+'%';
-  if(dnInline) dnInline.textContent = dnPct+'%';
-
-  // 결과 바 (항상 표시)
-  const resultEl = document.getElementById('vote-result');
-  if(resultEl) resultEl.style.display = 'block';
-
-  const barUp = document.getElementById('vote-bar-up');
-  const barDn = document.getElementById('vote-bar-dn');
-  if(barUp) barUp.style.width = upPct+'%';
-  if(barDn) barDn.style.width = dnPct+'%';
-
-  const upPctEl = document.getElementById('vote-up-pct');
-  const dnPctEl = document.getElementById('vote-dn-pct');
-  const upCntEl = document.getElementById('vote-up-cnt');
-  const dnCntEl = document.getElementById('vote-dn-cnt');
-  const cntEl   = document.getElementById('vote-count');
-
-  if(upPctEl) upPctEl.textContent = upPct+'%';
-  if(dnPctEl) dnPctEl.textContent = dnPct+'%';
-  if(upCntEl) upCntEl.textContent = total > 0 ? upCount.toLocaleString()+'명' : '0명';
-  if(dnCntEl) dnCntEl.textContent = total > 0 ? dnCount.toLocaleString()+'명' : '0명';
-  if(cntEl)   cntEl.textContent   = total > 0 ? '전세계 총 '+total.toLocaleString()+'명 참여' : '첫 번째 투표자가 되어보세요!';
+    const up = Array.isArray(upRows) ? upRows.length : localUp;
+    const dn = Array.isArray(dnRows) ? dnRows.length : localDn;
+    localStorage.setItem('gv_up_'+asset+VOTE_DATE, up);
+    localStorage.setItem('gv_dn_'+asset+VOTE_DATE, dn);
+    updateVoteUI(up, dn);
+  } catch(e){}
 }
 
 async function vote(dir){
@@ -1490,45 +1500,41 @@ async function vote(dir){
     alert('오늘 이 항목은 이미 투표하셨습니다!');
     return;
   }
+  // 로컬에 투표 기록 (중복 방지)
   localStorage.setItem(votedKey, dir);
+
+  // 버튼 상태 즉시 변경
   const upBtn = document.getElementById('vote-up-btn');
   const dnBtn = document.getElementById('vote-dn-btn');
   upBtn.disabled = true;
   dnBtn.disabled = true;
-  if(dir === 'up') upBtn.classList.add('voted-up');
+  if(dir==='up') upBtn.classList.add('voted-up');
   else dnBtn.classList.add('voted-dn');
 
-  // 로컬 캐시 즉시 업데이트 (새로고침 후에도 유지)
-  const cacheKeyUp = 'gv_up_'+currentVoteAsset+VOTE_DATE;
-  const cacheKeyDn = 'gv_dn_'+currentVoteAsset+VOTE_DATE;
-  const curUp = parseInt(localStorage.getItem(cacheKeyUp)||'0');
-  const curDn = parseInt(localStorage.getItem(cacheKeyDn)||'0');
-  const newUp = curUp + (dir==='up'?1:0);
-  const newDn = curDn + (dir==='down'?1:0);
-  localStorage.setItem(cacheKeyUp, newUp);
-  localStorage.setItem(cacheKeyDn, newDn);
+  // 로컬 카운트 즉시 증가 (체감 빠르게)
+  const cacheUp = 'gv_up_'+currentVoteAsset+VOTE_DATE;
+  const cacheDn = 'gv_dn_'+currentVoteAsset+VOTE_DATE;
+  const newUp = parseInt(localStorage.getItem(cacheUp)||'0') + (dir==='up'?1:0);
+  const newDn = parseInt(localStorage.getItem(cacheDn)||'0') + (dir==='down'?1:0);
+  localStorage.setItem(cacheUp, newUp);
+  localStorage.setItem(cacheDn, newDn);
   updateVoteUI(newUp, newDn);
 
-  // 서버 카운트 증가 (백그라운드)
+  // Supabase에 실제 투표 INSERT
   try {
-    const key = VOTE_NS+'-'+currentVoteAsset+'-'+VOTE_DATE;
-    const r = await fetch('https://api.counterapi.dev/v1/'+key+'-'+dir+'/up');
-    const d = await r.json();
-    // 서버 실제값으로 캐시 업데이트
-    if(d.count){
-      if(dir==='up') localStorage.setItem(cacheKeyUp, d.count);
-      else localStorage.setItem(cacheKeyDn, d.count);
-    }
-    // 전체 결과 다시 로드
+    await sbInsert('votes', {
+      asset: currentVoteAsset,
+      direction: dir,
+      vote_date: VOTE_DATE
+    });
+    // 서버 실제값으로 UI 업데이트
     await loadVoteData(currentVoteAsset);
-  } catch(e){ /* 로컬 캐시값 유지 */ }
+  } catch(e){ /* 로컬값 유지 */ }
 }
-
-// 초기 로드 - 즉시 UI 표시 후 서버 데이터 로드
-updateVoteUI(0, 0);  // 바로 UI 표시
+// 초기 로드 - 즉시 UI 표시 후 Supabase 데이터 로드
+updateVoteUI(0, 0);
 loadVoteData('BTC');
-loadVoteData('TSLA');
-loadVoteData('GOLD');
+
 
 // 현재 자산(BTC) 투표 상태 복원
 (function restoreVoteState(){
