@@ -467,9 +467,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
             </div>
           </div>
           <div class="vote-count" id="vote-count"></div>
-        <div style="text-align:center;margin-top:6px;">
-          <button onclick="resetVote()" style="font-size:9px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;padding:2px 6px;">투표 초기화 (테스트용)</button>
-        </div>
+
         </div>
       </div>
 
@@ -1589,23 +1587,6 @@ loadVoteData('BTC');
     else document.getElementById('vote-dn-btn').classList.add('voted-dn');
   }
 })();
-
-// ── 투표 초기화 (테스트용) ──
-function resetVote(){
-  const assets = ['BTC','TSLA','GOLD'];
-  assets.forEach(a=>{
-    localStorage.removeItem('nx_voted_'+VOTE_DATE+'_'+a);
-    localStorage.removeItem('gv_up_'+a+VOTE_DATE);
-    localStorage.removeItem('gv_dn_'+a+VOTE_DATE);
-  });
-  document.getElementById('vote-up-btn').disabled = false;
-  document.getElementById('vote-dn-btn').disabled = false;
-  document.getElementById('vote-up-btn').classList.remove('voted-up','voted-dn');
-  document.getElementById('vote-dn-btn').classList.remove('voted-up','voted-dn');
-  updateVoteUI(0,0);
-  document.getElementById('vote-result').style.display='none';
-  alert('투표가 초기화되었습니다!');
-}
 
 // ── Formspree ──
 async function handleSubmit(e){
