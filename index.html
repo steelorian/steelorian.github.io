@@ -467,6 +467,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
             </div>
           </div>
           <div class="vote-count" id="vote-count"></div>
+        <div style="text-align:center;margin-top:6px;">
+          <button onclick="resetVote()" style="font-size:9px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;padding:2px 6px;">투표 초기화 (테스트용)</button>
+        </div>
         </div>
       </div>
 
@@ -749,7 +752,8 @@ const sbHeaders = {
   'apikey': SB_KEY,
   'Authorization': 'Bearer ' + SB_KEY,
   'Content-Type': 'application/json',
-  'Prefer': 'return=minimal'
+  'Prefer': 'return=minimal',
+  'X-Client-Info': 'nexus-signal'
 };
 
 async function sbSelect(table, filters={}, countOnly=false){
@@ -757,38 +761,32 @@ async function sbSelect(table, filters={}, countOnly=false){
   Object.entries(filters).forEach(([k,v])=>{
     url += '&'+k+'=eq.'+encodeURIComponent(v);
   });
-  const headers = {
-    'apikey': SB_KEY,
-    'Authorization': 'Bearer '+SB_KEY,
-    'Content-Type': 'application/json',
-  };
-  if(countOnly){
-    // Supabase count=exact: 응답 헤더 Content-Range 또는 본문 길이로 카운트
-    headers['Prefer'] = 'count=exact';
-    headers['Range-Unit'] = 'items';
-    headers['Range'] = '0-0'; // 최소한의 데이터만 요청
-  }
-  const r = await fetch(url, {headers});
-  if(countOnly){
-    // Content-Range: 0-0/총개수
-    const cr = r.headers.get('content-range') || r.headers.get('Content-Range') || '';
-    if(cr.includes('/')){
-      const total = parseInt(cr.split('/')[1]);
-      if(!isNaN(total)) return total;
+  const r = await fetch(url, {
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer '+SB_KEY,
     }
-    // fallback: 전체 데이터 가져와서 length
-    const data = await r.json();
-    return Array.isArray(data) ? data.length : 0;
-  }
-  return await r.json();
+  });
+  if(!r.ok) throw new Error('sbSelect failed: '+r.status);
+  const data = await r.json();
+  return Array.isArray(data) ? data : [];
 }
 
 async function sbInsert(table, data){
   const r = await fetch(SB_URL+'/rest/v1/'+table, {
     method: 'POST',
-    headers: sbHeaders,
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer '+SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
     body: JSON.stringify(data)
   });
+  if(!r.ok){
+    const err = await r.text();
+    console.error('sbInsert error:', r.status, err);
+  }
   return r.ok;
 }
 const FORMSPREE_ID = 'xjgjkjvq';
@@ -849,16 +847,25 @@ const TODAY_DATE = new Date().toISOString().slice(0,10);
 
 async function updateVisitor(){
   try {
-    await sbInsert('visitors', { visit_date: TODAY_DATE });
+    // 방문 기록 저장
+    const ok = await sbInsert('visitors', { visit_date: TODAY_DATE });
+    console.log('방문 기록:', ok ? '성공' : '실패');
+
+    // 오늘 방문자
     const todayRows = await sbSelect('visitors', {visit_date: TODAY_DATE});
-    const td = Array.isArray(todayRows) ? todayRows.length : 0;
+    const td = todayRows.length;
+
+    // 누적 방문자 (오늘 + 로컬 이전 누적)
     const totalRows = await sbSelect('visitors', {});
-    const tt = Array.isArray(totalRows) ? totalRows.length : 0;
+    const tt = totalRows.length;
+
+    console.log('방문자:', 'today='+td, 'total='+tt);
     document.getElementById('cv-today').textContent = td.toLocaleString();
     document.getElementById('cv-total').textContent = tt.toLocaleString();
     const adEl = document.getElementById('ad-total');
     if(adEl) adEl.textContent = tt.toLocaleString();
   } catch(e){
+    console.error('방문자 오류:', e);
     document.getElementById('cv-today').textContent = '-';
     document.getElementById('cv-total').textContent = '-';
   }
@@ -1486,12 +1493,13 @@ async function loadVoteData(asset){
       sbSelect('votes', {asset:asset, direction:'up', vote_date:VOTE_DATE}),
       sbSelect('votes', {asset:asset, direction:'down', vote_date:VOTE_DATE})
     ]);
-    const up = Array.isArray(upRows) ? upRows.length : localUp;
-    const dn = Array.isArray(dnRows) ? dnRows.length : localDn;
+    const up = upRows.length;
+    const dn = dnRows.length;
+    console.log('투표 로드:', asset, 'up='+up, 'dn='+dn);
     localStorage.setItem('gv_up_'+asset+VOTE_DATE, up);
     localStorage.setItem('gv_dn_'+asset+VOTE_DATE, dn);
     updateVoteUI(up, dn);
-  } catch(e){}
+  } catch(e){ console.error('loadVoteData 오류:', e); }
 }
 
 async function vote(dir){
@@ -1547,6 +1555,23 @@ loadVoteData('BTC');
     else document.getElementById('vote-dn-btn').classList.add('voted-dn');
   }
 })();
+
+// ── 투표 초기화 (테스트용) ──
+function resetVote(){
+  const assets = ['BTC','TSLA','GOLD'];
+  assets.forEach(a=>{
+    localStorage.removeItem('nx_voted_'+VOTE_DATE+'_'+a);
+    localStorage.removeItem('gv_up_'+a+VOTE_DATE);
+    localStorage.removeItem('gv_dn_'+a+VOTE_DATE);
+  });
+  document.getElementById('vote-up-btn').disabled = false;
+  document.getElementById('vote-dn-btn').disabled = false;
+  document.getElementById('vote-up-btn').classList.remove('voted-up','voted-dn');
+  document.getElementById('vote-dn-btn').classList.remove('voted-up','voted-dn');
+  updateVoteUI(0,0);
+  document.getElementById('vote-result').style.display='none';
+  alert('투표가 초기화되었습니다!');
+}
 
 // ── Formspree ──
 async function handleSubmit(e){
