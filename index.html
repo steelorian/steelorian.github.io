@@ -1015,12 +1015,25 @@ async function sbSelect(table, filters={}, countOnly=false){
   Object.entries(filters).forEach(([k,v])=>{
     url += '&'+k+'=eq.'+encodeURIComponent(v);
   });
-  const r = await fetch(url, {
-    headers: {
-      'apikey': SB_KEY,
-      'Authorization': 'Bearer '+SB_KEY,
+  const headers = {
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer '+SB_KEY,
+  };
+  if(countOnly){
+    // Supabase count=exact: Content-Range 헤더로 정확한 전체 수 반환 (1000개 제한 없음)
+    headers['Prefer'] = 'count=exact';
+    headers['Range'] = '0-0'; // 데이터는 1개만, 카운트만 필요
+    const r = await fetch(url, {headers});
+    const cr = r.headers.get('content-range')||'';
+    // content-range: 0-0/전체수 형태
+    if(cr.includes('/')){
+      const total = parseInt(cr.split('/')[1]);
+      if(!isNaN(total) && total >= 0) return total;
     }
-  });
+    const data = await r.json();
+    return Array.isArray(data) ? data.length : 0;
+  }
+  const r = await fetch(url, {headers});
   if(!r.ok) throw new Error('sbSelect failed: '+r.status);
   const data = await r.json();
   return Array.isArray(data) ? data : [];
@@ -1102,24 +1115,19 @@ const TODAY_DATE = new Date().toISOString().slice(0,10);
 async function updateVisitor(){
   try {
     // 방문 기록 저장
-    const ok = await sbInsert('visitors', { visit_date: TODAY_DATE });
-    console.log('방문 기록:', ok ? '성공' : '실패');
+    await sbInsert('visitors', { visit_date: TODAY_DATE });
 
-    // 오늘 방문자
-    const todayRows = await sbSelect('visitors', {visit_date: TODAY_DATE});
-    const td = todayRows.length;
+    // countOnly=true → Prefer:count=exact 사용 → 1000개 제한 없이 정확한 수
+    const [td, tt] = await Promise.all([
+      sbSelect('visitors', {visit_date: TODAY_DATE}, true),
+      sbSelect('visitors', {}, true)
+    ]);
 
-    // 누적 방문자 (오늘 + 로컬 이전 누적)
-    const totalRows = await sbSelect('visitors', {});
-    const tt = totalRows.length;
-
-    console.log('방문자:', 'today='+td, 'total='+tt);
-    document.getElementById('cv-today').textContent = td.toLocaleString();
-    document.getElementById('cv-total').textContent = tt.toLocaleString();
+    document.getElementById('cv-today').textContent = (td||0).toLocaleString();
+    document.getElementById('cv-total').textContent = (tt||0).toLocaleString();
     const adEl = document.getElementById('ad-total');
-    if(adEl) adEl.textContent = tt.toLocaleString();
+    if(adEl) adEl.textContent = (tt||0).toLocaleString();
   } catch(e){
-    console.error('방문자 오류:', e);
     document.getElementById('cv-today').textContent = '-';
     document.getElementById('cv-total').textContent = '-';
   }
@@ -1777,17 +1785,14 @@ async function loadVoteData(asset){
   const localDn = parseInt(localStorage.getItem('gv_dn_'+asset+VOTE_DATE)||'0');
   updateVoteUI(localUp, localDn);
   try {
-    const [upRows, dnRows] = await Promise.all([
-      sbSelect('votes', {asset:asset, direction:'up', vote_date:VOTE_DATE}),
-      sbSelect('votes', {asset:asset, direction:'down', vote_date:VOTE_DATE})
+    const [up, dn] = await Promise.all([
+      sbSelect('votes', {asset:asset, direction:'up', vote_date:VOTE_DATE}, true),
+      sbSelect('votes', {asset:asset, direction:'down', vote_date:VOTE_DATE}, true)
     ]);
-    const up = upRows.length;
-    const dn = dnRows.length;
-    console.log('투표 로드:', asset, 'up='+up, 'dn='+dn);
     localStorage.setItem('gv_up_'+asset+VOTE_DATE, up);
     localStorage.setItem('gv_dn_'+asset+VOTE_DATE, dn);
     updateVoteUI(up, dn);
-  } catch(e){ console.error('loadVoteData 오류:', e); }
+  } catch(e){}
 }
 
 async function vote(dir){
