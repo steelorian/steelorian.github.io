@@ -1011,30 +1011,26 @@ const sbHeaders = {
 };
 
 async function sbSelect(table, filters={}, countOnly=false){
+  const headers = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+
+  if(countOnly){
+    // select=count → body에 [{count:N}] 반환, CORS 문제 없음, 행 수 제한 없음
+    let url = SB_URL+'/rest/v1/'+table+'?select=count';
+    Object.entries(filters).forEach(([k,v])=>{
+      url += '&'+k+'=eq.'+encodeURIComponent(v);
+    });
+    const r = await fetch(url, {headers});
+    if(!r.ok) return 0;
+    const data = await r.json();
+    return parseInt(data?.[0]?.count||'0');
+  }
+
   let url = SB_URL+'/rest/v1/'+table+'?select=*';
   Object.entries(filters).forEach(([k,v])=>{
     url += '&'+k+'=eq.'+encodeURIComponent(v);
   });
-  const headers = {
-    'apikey': SB_KEY,
-    'Authorization': 'Bearer '+SB_KEY,
-  };
-  if(countOnly){
-    // Supabase count=exact: Content-Range 헤더로 정확한 전체 수 반환 (1000개 제한 없음)
-    headers['Prefer'] = 'count=exact';
-    headers['Range'] = '0-0'; // 데이터는 1개만, 카운트만 필요
-    const r = await fetch(url, {headers});
-    const cr = r.headers.get('content-range')||'';
-    // content-range: 0-0/전체수 형태
-    if(cr.includes('/')){
-      const total = parseInt(cr.split('/')[1]);
-      if(!isNaN(total) && total >= 0) return total;
-    }
-    const data = await r.json();
-    return Array.isArray(data) ? data.length : 0;
-  }
   const r = await fetch(url, {headers});
-  if(!r.ok) throw new Error('sbSelect failed: '+r.status);
+  if(!r.ok) return [];
   const data = await r.json();
   return Array.isArray(data) ? data : [];
 }
