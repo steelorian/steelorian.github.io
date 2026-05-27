@@ -1550,16 +1550,20 @@ const STOCKS=[
 ];
 
 async function fetchStock(sym){
-  for(const base of['https://query1.finance.yahoo.com','https://query2.finance.yahoo.com','https://corsproxy.io/?'+encodeURIComponent('https://query1.finance.yahoo.com')]){
+  const PROXIES = [
+    `https://corsproxy.io/?${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=1d&range=1d')}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=1d&range=1d')}`,
+    `https://corsproxy.io/?${encodeURIComponent('https://query2.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=1d&range=1d')}`,
+  ];
+  for(const url of PROXIES){
     try {
-      const url=base.includes('corsproxy')?base+encodeURIComponent('/v8/finance/chart/'+sym+'?interval=1d&range=1d'):`${base}/v8/finance/chart/${sym}?interval=1d&range=1d`;
-      const r=await fetch(url,{headers:{Accept:'application/json'}});
-      let d=await r.json();
-      if(d.contents) d=JSON.parse(d.contents);
-      const m=d.chart.result[0].meta;
-      const price=m.regularMarketPrice;
-      const prev=m.chartPreviousClose||m.regularMarketPreviousClose||price;
-      return {price,chgPct:prev?((price-prev)/prev)*100:0};
+      const r = await fetch(url, {headers:{Accept:'application/json'}});
+      let d = await r.json();
+      if(d.contents) d = JSON.parse(d.contents);
+      const m = d.chart.result[0].meta;
+      const price = m.regularMarketPrice;
+      const prev = m.chartPreviousClose || m.regularMarketPreviousClose || price;
+      return {price, chgPct: prev ? ((price-prev)/prev)*100 : 0};
     } catch(e){}
   }
   return null;
