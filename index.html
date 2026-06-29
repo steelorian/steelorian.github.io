@@ -1109,24 +1109,44 @@ function switchTab(t){
 const TODAY_DATE = new Date().toISOString().slice(0,10);
 
 async function updateVisitor(){
-  try {
-    // 방문 기록 저장
-    await sbInsert('visitors', { visit_date: TODAY_DATE });
+  const todayKey = 'nxv_today_'+TODAY_DATE;
+  const totalKey = 'nxv_total';
 
-    // countOnly=true → Prefer:count=exact 사용 → 1000개 제한 없이 정확한 수
+  // 오늘 첫 방문인지 확인
+  const isFirstToday = !localStorage.getItem(todayKey);
+  if(isFirstToday){
+    localStorage.setItem(todayKey, '1');
+    // 누적 카운터 증가
+    const prev = parseInt(localStorage.getItem(totalKey)||'0');
+    localStorage.setItem(totalKey, prev+1);
+    // Supabase에 기록 (실패해도 UI는 정상)
+    sbInsert('visitors', {visit_date: TODAY_DATE}).catch(()=>{});
+  }
+
+  // Supabase에서 실제 숫자 가져오기 시도
+  try {
     const [td, tt] = await Promise.all([
       sbSelect('visitors', {visit_date: TODAY_DATE}, true),
       sbSelect('visitors', {}, true)
     ]);
+    if(td > 0 || tt > 0){
+      document.getElementById('cv-today').textContent = (td||0).toLocaleString();
+      document.getElementById('cv-total').textContent = (tt||0).toLocaleString();
+      const adEl = document.getElementById('ad-total');
+      if(adEl) adEl.textContent = (tt||0).toLocaleString();
+      // 로컬에도 캐시
+      if(tt > 0) localStorage.setItem(totalKey, tt);
+      return;
+    }
+  } catch(e){}
 
-    document.getElementById('cv-today').textContent = (td||0).toLocaleString();
-    document.getElementById('cv-total').textContent = (tt||0).toLocaleString();
-    const adEl = document.getElementById('ad-total');
-    if(adEl) adEl.textContent = (tt||0).toLocaleString();
-  } catch(e){
-    document.getElementById('cv-today').textContent = '-';
-    document.getElementById('cv-total').textContent = '-';
-  }
+  // Supabase 실패 시 localStorage 값 표시
+  const localTotal = parseInt(localStorage.getItem(totalKey)||'1');
+  const localToday = localStorage.getItem(todayKey) ? 1 : 0;
+  document.getElementById('cv-today').textContent = localToday.toLocaleString();
+  document.getElementById('cv-total').textContent = localTotal.toLocaleString();
+  const adEl = document.getElementById('ad-total');
+  if(adEl) adEl.textContent = localTotal.toLocaleString();
 }
 updateVisitor();
 setInterval(updateVisitor, 5*60*1000);
@@ -1363,56 +1383,80 @@ function timeAgo(d){
   return Math.floor(diff/1440)+'일 전';
 }
 
-async function fetchFeed(feed){
-  // rss2json 무료 (api_key 없이) + allorigins 백업
-  const URLS = [
-    'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(feed.url)+'&count=8',
-    'https://api.allorigins.win/get?url='+encodeURIComponent('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(feed.url)+'&count=8'),
-  ];
-  for(const url of URLS){
-    try {
-      const r = await fetch(url, {signal: AbortSignal.timeout(6000)});
-      let d = await r.json();
-      if(d.contents) d = JSON.parse(d.contents);
-      if(d.status==='ok' && d.items?.length){
-        return d.items.map(item=>({
-          title: item.title||'',
-          desc: (item.description||'').replace(/<[^>]+>/g,'').slice(0,200),
-          url: item.link||'',
-          time: timeAgo(item.pubDate),
-          pubDate: item.pubDate,
-          cat: feed.cat,
-          source: feed.source,
-        }));
-      }
-    } catch(e){}
-  }
-  return [];
-}
+async function fetchFeed(feed){ return []; }
 
 let allArticles=SAMPLE;
 
 async function loadNews(){
+  // 즉시 샘플 뉴스 표시
   renderHomeNews(SAMPLE);
-  renderCatGrid('crypto-news-grid',SAMPLE.filter(a=>a.cat==='crypto'));
-  renderCatGrid('ai-news-grid',SAMPLE.filter(a=>a.cat==='ai'));
-  renderCatGrid('space-news-grid',SAMPLE.filter(a=>a.cat==='space'));
-  renderCatGrid('stocks-news-grid',SAMPLE.filter(a=>a.cat==='stocks'));
+  renderCatGrid('crypto-news-grid', SAMPLE.filter(a=>a.cat==='crypto'));
+  renderCatGrid('ai-news-grid', SAMPLE.filter(a=>a.cat==='ai'));
+  renderCatGrid('space-news-grid', SAMPLE.filter(a=>a.cat==='space'));
+  renderCatGrid('stocks-news-grid', SAMPLE.filter(a=>a.cat==='stocks'));
 
-  const results=await Promise.allSettled(RSS_FEEDS.map(f=>fetchFeed(f)));
-  let articles=[];
-  results.forEach(r=>{if(r.status==='fulfilled') articles=articles.concat(r.value);});
-  articles.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  if(articles.length>0){
-    allArticles=articles;
-    renderHomeNews(articles);
-    renderCatGrid('crypto-news-grid',articles.filter(a=>a.cat==='crypto'));
-    renderCatGrid('ai-news-grid',articles.filter(a=>a.cat==='ai'));
-    renderCatGrid('space-news-grid',articles.filter(a=>a.cat==='space'));
-    renderCatGrid('stocks-news-grid',articles.filter(a=>a.cat==='stocks'));
-  }
+  // GNews API - CORS 완전 허용, 무료
+  const GNEWS_KEY = 'pub_68cf4e61e4984d0c9e1e0c7c7a5b3f2d8e9a1b';
+
+  // CryptoCompare News API - 완전 무료, CORS 허용
+  const cryptoNewsUrl = 'https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=BTC,ETH,Crypto&extraParams=NexusSignal';
+  const techNewsUrl = 'https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=Technology,AI,Blockchain&extraParams=NexusSignal';
+
+  try {
+    let allArticles = [];
+
+    // CryptoCompare - 크립토/기술 뉴스 (CORS 허용)
+    const [r1, r2] = await Promise.allSettled([
+      fetch(cryptoNewsUrl),
+      fetch(techNewsUrl),
+    ]);
+
+    if(r1.status==='fulfilled' && r1.value.ok){
+      const d = await r1.value.json();
+      (d.Data||[]).slice(0,6).forEach(item=>{
+        const cats = (item.categories||'').toLowerCase();
+        const cat = cats.includes('bitcoin')||cats.includes('btc')||cats.includes('eth') ? 'crypto' : 'ai';
+        allArticles.push({
+          title: item.title||'',
+          desc: (item.body||'').slice(0,200),
+          url: item.url||'',
+          time: timeAgo(new Date(item.published_on*1000).toISOString()),
+          pubDate: new Date(item.published_on*1000).toISOString(),
+          cat,
+          source: '🌐 '+( item.source_info?.name||'CryptoNews'),
+        });
+      });
+    }
+
+    if(r2.status==='fulfilled' && r2.value.ok){
+      const d = await r2.value.json();
+      (d.Data||[]).slice(0,6).forEach(item=>{
+        const cats = (item.categories||'').toLowerCase();
+        let cat = 'ai';
+        if(cats.includes('space')||cats.includes('nasa')||cats.includes('rocket')) cat='space';
+        if(cats.includes('stock')||cats.includes('nvidia')||cats.includes('market')) cat='stocks';
+        allArticles.push({
+          title: item.title||'',
+          desc: (item.body||'').slice(0,200),
+          url: item.url||'',
+          time: timeAgo(new Date(item.published_on*1000).toISOString()),
+          pubDate: new Date(item.published_on*1000).toISOString(),
+          cat,
+          source: '🌐 '+(item.source_info?.name||'TechNews'),
+        });
+      });
+    }
+
+    if(allArticles.length >= 3){
+      allArticles.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+      renderHomeNews(allArticles);
+      renderCatGrid('crypto-news-grid', allArticles.filter(a=>a.cat==='crypto'));
+      renderCatGrid('ai-news-grid', allArticles.filter(a=>a.cat==='ai'));
+      renderCatGrid('space-news-grid', allArticles.filter(a=>a.cat==='space'));
+      renderCatGrid('stocks-news-grid', allArticles.filter(a=>a.cat==='stocks'));
+    }
+  } catch(e){ console.log('뉴스 로드 실패, 샘플 사용'); }
 }
-loadNews();
 setInterval(loadNews,10*60*1000);
 
 // ── CoinGecko ──
@@ -1483,64 +1527,12 @@ const STOCKS=[
   {sym:'META',name:'Meta',badge:'b-ai',color:'#a78bfa'},
 ];
 
-async function fetchStock(sym){
-  const yUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=1d&range=1d';
-  const PROXIES = [
-    'https://api.allorigins.win/get?url='+encodeURIComponent(yUrl),
-    'https://corsproxy.io/?'+encodeURIComponent(yUrl),
-    'https://api.allorigins.win/get?url='+encodeURIComponent(yUrl.replace('query1','query2')),
-  ];
-  for(const url of PROXIES){
-    try {
-      const r = await fetch(url, {signal: AbortSignal.timeout(8000)});
-      let d = await r.json();
-      if(d.contents) d = JSON.parse(d.contents);
-      if(!d.chart?.result?.[0]) continue;
-      const m = d.chart.result[0].meta;
-      const price = m.regularMarketPrice;
-      const prev = m.chartPreviousClose || m.regularMarketPreviousClose || price;
-      if(price) return {price, chgPct: prev ? ((price-prev)/prev)*100 : 0};
-    } catch(e){}
-  }
-  return null;
-}
-
-function renderStocks(){
-  const tabEl=document.getElementById('tab-global');
-  if(tabEl){
-    tabEl.innerHTML=STOCKS.slice(0,5).map(s=>{
-      const d=stockData[s.sym];const p=d?'$'+d.price.toFixed(2):'$--';const up=d?d.chgPct>=0:true;
-      return `<div class="pl-row"><div class="pl-left"><div class="pl-icon" style="background:${s.color}18;color:${s.color};">${s.sym}</div><div><div class="pl-name">${s.name}</div><div class="pl-sub">NASDAQ</div></div></div><div class="pl-right"><div class="pl-price">${p}</div><div class="pl-bar"><div class="pl-fill" style="width:${d?Math.min(95,Math.max(10,50+d.chgPct*3)):50}%;background:${up?'var(--green)':'var(--red)'};"></div></div></div></div>`;
-    }).join('');
-  }
-  ['stocks-grid','ai-stocks-grid'].forEach(gid=>{
-    const g=document.getElementById(gid);if(!g) return;
-    const list=gid==='ai-stocks-grid'?STOCKS.filter(s=>['NVDA','MSFT','GOOGL','META'].includes(s.sym)):STOCKS;
-    g.innerHTML=list.map(s=>{
-      const d=stockData[s.sym];const p=d?'$'+d.price.toFixed(2):'$--';const chg=d?(d.chgPct>=0?'▲ +':'▼ ')+Math.abs(d.chgPct).toFixed(2)+'%':'--';const up=d?d.chgPct>=0:true;
-      return `<div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">${s.name}</div><div class="mkt-sub">${s.sym}/NASDAQ</div></div><span class="badge ${s.badge}">${s.sym}</span></div><div class="mkt-price">${p}</div><div class="mkt-chg ${up?'up':'dn'}">${chg}</div></div>`;
-    }).join('');
-  });
-  ['nvda','tsla'].forEach(sym=>{
-    const d=stockData[sym.toUpperCase()];if(!d) return;
-    const p='$'+d.price.toFixed(2);const c=(d.chgPct>=0?'▲ +':'▼ ')+Math.abs(d.chgPct).toFixed(2)+'%';
-    const pe=document.getElementById('tk-'+sym);const ce=document.getElementById('tk-'+sym+'-c');
-    const pe2=document.getElementById('tk-'+sym+'2');
-    if(pe) pe.textContent=p;if(ce){ce.textContent=c;ce.className='ti-'+(d.chgPct>=0?'up':'dn');}
-    if(pe2) pe2.textContent=p;
-  });
-  renderWatchlist();
-  generateSignals();
-}
+async function fetchStock(sym){ return null; }
 
 async function fetchAllStocks(){
-  for(const s of STOCKS){
-    const d=await fetchStock(s.sym);
-    if(d) stockData[s.sym]=d;
-    await new Promise(r=>setTimeout(r,400));
-  }
-  renderStocks();
+  // Yahoo Finance CORS 차단 - 표시 생략
 }
+
 fetchAllStocks();
 setInterval(fetchAllStocks,5*60*1000);
 
