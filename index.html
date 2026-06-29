@@ -1442,6 +1442,7 @@ async function loadNews(){
     }
   } catch(e){ console.log('뉴스 오류:', e); }
 }
+loadNews();
 setInterval(loadNews,10*60*1000);
 
 // ── CoinGecko ──
@@ -1485,6 +1486,17 @@ function updateCryptoUI(data){
   generateMarketSummary();
   generateSignals();
   renderWatchlist();
+  // AI 종목 그리드 (크립토 데이터로)
+  const aigrid = document.getElementById('ai-stocks-grid');
+  if(aigrid && aigrid.innerHTML === ''){
+    const aiItems = [
+      {name:'NVIDIA',sym:'NVDA',badge:'b-ai'},
+      {name:'Microsoft',sym:'MSFT',badge:'b-ai'},
+      {name:'Alphabet',sym:'GOOGL',badge:'b-ai'},
+      {name:'Meta',sym:'META',badge:'b-ai'},
+    ];
+    aigrid.innerHTML = aiItems.map(s=>`<div class="mkt-card"><div class="mkt-top"><div><div class="mkt-name">${s.name}</div><div class="mkt-sub">${s.sym}/NASDAQ</div></div><span class="badge ${s.badge}">AI</span></div><div class="mkt-price">$--</div><div class="mkt-chg" style="color:var(--text3);">시세 로딩 중</div></div>`).join('');
+  }
 }
 
 async function fetchCrypto(){
